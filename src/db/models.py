@@ -24,6 +24,7 @@ class InstagramAccounts(Model, IdMixin):
 
 class InstagramLogins(Model, IdMixin, TimestampMixin):
     username = fields.CharField(max_length=255, unique=True)
+    user_id = fields.IntField(null=True)
     followers = fields.IntField(null=True)
     is_exists = fields.BooleanField(null=True)
 
