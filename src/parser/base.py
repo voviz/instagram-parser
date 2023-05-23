@@ -6,6 +6,7 @@ import aiohttp as aiohttp
 
 from src.parser.exceptions import EmptyResultsException, ThirdPartyTimeoutError, \
     ThirdPartyApiException, NotFoundException
+from src.parser.proxy_rotator import Rotator
 
 
 class BaseThirdPartyAPIClient:
@@ -24,13 +25,16 @@ class BaseThirdPartyAPIClient:
         PATCH = 'PATCH'
         DELETE = 'DELETE'
 
+    def __init__(self, proxy_list: list = None):
+        self.proxy_rotator = Rotator(proxy_list)
+
     async def request(self, method: HTTPMethods, edge: str, is_json: bool = True,
-                      proxy: str = None, querystring: dict = None, payload: Any = None) -> str:
+                      querystring: dict = None, payload: Any = None) -> str:
         async with aiohttp.ClientSession(headers=self.headers) as session:
             async with session.request(
                     method=method.value,
                     url='/'.join((self.base_url, edge)),
-                    proxy=proxy,
+                    proxy=self.proxy_rotator.get(),
                     params=querystring,
                     json=payload,
             ) as res:
