@@ -7,8 +7,8 @@ class IdMixin:
 
 
 class TimestampMixin:
-    created_at = fields.DatetimeField(null=True)
-    updated_at = fields.DatetimeField(null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now=True)
 
 
 class InstagramAccounts(Model, IdMixin):
@@ -16,7 +16,7 @@ class InstagramAccounts(Model, IdMixin):
     cookies = fields.CharField(max_length=5000, null=True)
     user_agent = fields.BigIntField(max_length=255, null=True)
     banned = fields.BooleanField(default=False)
-    last_used_at = fields.DatetimeField(null=True)
+    last_used_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         table = 'instagram_accounts'
@@ -34,7 +34,7 @@ class InstagramLogins(Model, IdMixin, TimestampMixin):
 
 class Proxies(Model, IdMixin):
     proxy = fields.CharField(max_length=255, unique=True)
-    last_used_at = fields.DatetimeField(null=True)
+    last_used_at = fields.DatetimeField(auto_now=True)
 
     class Meta:
         table = 'proxies'
