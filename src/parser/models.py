@@ -40,4 +40,5 @@ class InstagramClientAnswer(ThirdPartyAPIClientAnswer):
     """
     user_id: int = Field(default=None)
     username: str
+    followers_number: int = Field(default=None)
     stories_list: list[InstagramStory] = Field(default_factory=list)
