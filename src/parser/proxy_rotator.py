@@ -25,10 +25,19 @@ class Rotator:
             self._groups[resource] = group_counter = Counter(self._objects)
         obj = random.choice([o for o, count in group_counter.items() if count == min(group_counter.values())])
         group_counter[obj] += 1
-        return obj
+        return self.convert_to_aiohttp_format(obj)
 
     def release(self, obj: T, group: str = None):
         self._groups[group][obj] -= 1
 
     def clear(self):
         self._groups = dict()
+
+    @staticmethod
+    def convert_to_aiohttp_format(proxy: str) -> str:
+        """
+        from format like ip:port:login:password -> http://login:password@ip:port
+        """
+        proxy_parts = proxy.split(':')
+        new_format = f'http://{proxy_parts[2]}:{proxy_parts[3]}@{proxy_parts[0]}:{proxy_parts[1]}'
+        return new_format
