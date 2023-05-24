@@ -27,8 +27,5 @@ class DatabaseConnector:
         asyncio.set_event_loop(loop)
         loop.run_until_complete(self._async_init())
 
-    def get_proxies_list(self) -> list[str]:
-        pass
-
 
 database_connector = DatabaseConnector()
