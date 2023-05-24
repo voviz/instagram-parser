@@ -1,12 +1,11 @@
 import json
-from typing import Any
 from enum import StrEnum
+from typing import Any
 
 import aiohttp as aiohttp
 
-from src.parser.exceptions import EmptyResultsException, ThirdPartyTimeoutError, \
-    ThirdPartyApiException, NotFoundException
-from src.parser.proxy_rotator import Rotator
+from parser.proxy_handler import ProxyHandler
+from src.parser.exceptions import EmptyResultsException, ThirdPartyApiException, NotFoundException
 
 
 class BaseThirdPartyAPIClient:
@@ -15,7 +14,8 @@ class BaseThirdPartyAPIClient:
     Also it performs basic response codes/errors handling.
     """
     api_name = ''
-    headers = {}
+    headers = {"accept": "*/*",
+               "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"}
     base_url = ''
 
     class HTTPMethods(StrEnum):
@@ -25,37 +25,37 @@ class BaseThirdPartyAPIClient:
         PATCH = 'PATCH'
         DELETE = 'DELETE'
 
-    def __init__(self, proxy_list: list = None):
-        self.proxy_rotator = Rotator(proxy_list)
-
-    async def request(self, method: HTTPMethods, edge: str, is_json: bool = True,
-                      querystring: dict = None, payload: Any = None) -> str:
+    async def request(self, method: HTTPMethods, edge: str,
+                      is_json: bool = True, querystring: dict = None,
+                      payload: Any = None, proxy: str = None,
+                      user_agent: str = None, cookie: str = None) -> str:
+        if user_agent:
+            self.headers.update({'user-agent': user_agent})
+        if cookie:
+            self.headers.update({'cookie': cookie})
         async with aiohttp.ClientSession(headers=self.headers) as session:
             async with session.request(
                     method=method.value,
                     url='/'.join((self.base_url, edge)),
-                    proxy=self.proxy_rotator.get(),
+                    proxy=ProxyHandler.convert_to_aiohttp_format(proxy),
                     params=querystring,
                     json=payload,
             ) as res:
                 return await self._clean_response(res, is_json=is_json)
 
     async def _clean_response(self, res, is_json: bool) -> str:
-        response_cleaned = ''
         try:
             if res.status == 404:
                 raise NotFoundException(f'{self.api_name} found nothing')
             if res.status == 500:
                 raise EmptyResultsException(f'{self.api_name} found nothing')
-            if res.status == 504:
-                raise ThirdPartyTimeoutError(f'{self.api_name} timeout')
             if res.status != 200:
-                raise ThirdPartyApiException(
-                    f'{self.api_name} non-200 response. Res [{res.status}] ({res}): {response_cleaned}')
-
-            response_cleaned = await res.json() if is_json else res.text()
-        except (json.decoder.JSONDecodeError, aiohttp.client_exceptions.ContentTypeError):
-            raise ThirdPartyApiException(
-                f'{self.api_name} non-JSON response: Res [{res.status}] ({res}): {response_cleaned}')
-
-        return response_cleaned
+                if is_json:
+                    answer = await res.json()
+                else:
+                    answer = await res.text()
+                raise ThirdPartyApiException(api_name=self.api_name, answer=answer, status=res.status)
+            response = await res.json() if is_json else await res.text()
+            return response
+        except (json.decoder.JSONDecodeError, aiohttp.client_exceptions.ContentTypeError) as exc:
+            raise ThirdPartyApiException(api_name=self.api_name, answer=exc, status=res.status)
