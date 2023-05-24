@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 from enum import StrEnum, IntEnum
 
@@ -25,6 +27,7 @@ class ThirdPartyAPIMediaType(IntEnum):
 class InstagramStory(BaseModel):
     media_type: ThirdPartyAPIMediaType = Field(default=ThirdPartyAPIMediaType.unknown)
     url: str
+    created_at: datetime = Field(default=None)
 
 
 class ThirdPartyAPIClientAnswer(BaseModel):
