@@ -1,6 +1,6 @@
 from parser.exceptions import ThirdPartyApiException, AccountConfirmationRequired, InvalidCredentials
-from parser.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType
-from src.parser.base import BaseThirdPartyAPIClient
+from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType
+from parser.clients.base import BaseThirdPartyAPIClient
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 
 
