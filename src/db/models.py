@@ -14,9 +14,10 @@ class TimestampMixin:
 class InstagramAccounts(Model, IdMixin):
     credentials = fields.CharField(max_length=255, unique=True)
     cookies = fields.CharField(max_length=5000, null=True)
-    user_agent = fields.BigIntField(max_length=255, null=True)
+    user_agent = fields.CharField(max_length=255, null=True)
     proxy = fields.CharField(max_length=255)
     last_used_at = fields.DatetimeField(null=True)
+    daily_usage_rate = fields.IntField(default=0)
 
     class Meta:
         table = 'instagram_accounts'
