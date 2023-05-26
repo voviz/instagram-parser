@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = Field(default='db', env='POSTGRES_HOST')
     POSTGRES_PORT: int = Field(default=5432, env='POSTGRES_PORT')
     POSTGRES_DB: str = Field(default='postgres', env='POSTGRES_DB')
+    ACCOUNT_DAILY_USAGE_RATE: int = Field(default=0, env='ACCOUNT_DAILY_USAGE_RATE')
 
     class Config:
         env_prefix = ""
