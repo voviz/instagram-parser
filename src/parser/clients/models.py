@@ -43,7 +43,7 @@ class InstagramStory(BaseModel):
     url: str
     created_at: datetime = Field(default=None)
     external_url: str = Field(default=None)
-    ai_caption: str = Field(default=None)
+    sku: str = Field(default=None)
     marketplace: Marketplaces = Field(default=None)
     ad_type: AdType = Field(default=None)
 

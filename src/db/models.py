@@ -44,7 +44,7 @@ class ParserResult(Model, IdMixin, TimestampMixin):
     instagram_username = fields.CharField(max_length=255, null=True)
     marketplace = fields.CharField(max_length=255, null=True)
     story_publication_date = fields.DatetimeField(null=True)
-    articul = fields.CharField(max_length=255, null=True)
+    sku = fields.CharField(max_length=255, null=True)
     ad_type = fields.CharField(max_length=255, null=True)
     is_checked = fields.BooleanField(default=False)
 
