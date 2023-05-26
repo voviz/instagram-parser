@@ -6,11 +6,9 @@ from enum import StrEnum, IntEnum
 
 class ThirdPartyAPISource(StrEnum):
     """
-    Defines available media types from third party APIs.
+    Defines available api sources for third party APIs.
     """
     instagram = 'instagram'
-    ozon = 'ozon'
-    wildberries = 'wildberries'
 
 
 class ThirdPartyAPIMediaType(IntEnum):
@@ -24,10 +22,30 @@ class ThirdPartyAPIMediaType(IntEnum):
     gif = 4
 
 
+class AdType(StrEnum):
+    """
+    Defines available types of adverts.
+    """
+    text = 'text'
+    link = 'link'
+
+
+class Marketplaces(StrEnum):
+    """
+    Defines available media types from third party APIs.
+    """
+    ozon = 'ozon'
+    wildberries = 'wildberries'
+
+
 class InstagramStory(BaseModel):
     media_type: ThirdPartyAPIMediaType = Field(default=ThirdPartyAPIMediaType.unknown)
     url: str
     created_at: datetime = Field(default=None)
+    external_url: str = Field(default=None)
+    ai_caption: str = Field(default=None)
+    marketplace: Marketplaces = Field(default=None)
+    ad_type: AdType = Field(default=None)
 
 
 class ThirdPartyAPIClientAnswer(BaseModel):
