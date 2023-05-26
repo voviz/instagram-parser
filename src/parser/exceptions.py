@@ -47,7 +47,7 @@ class InvalidCredentials(ThirdPartyApiException):
         self.account_name = account_name
 
     def __str__(self):
-        return 'Invalid credentials for account {}'.format(self.account_name)
+        return 'Invalid credentials for account: {}'.format(self.account_name)
 
 
 class AccountIsPrivate(ThirdPartyApiException):
@@ -56,3 +56,11 @@ class AccountIsPrivate(ThirdPartyApiException):
 
 class ThirdPartyTimeoutError(ThirdPartyApiException):
     pass
+
+
+class InvalidProxyFormatError(BaseParserException):
+    def __init__(self, proxy: str):
+        self.proxy = proxy
+
+    def __str__(self):
+        return 'Invalid format of proxy: {}'.format(self.proxy)
