@@ -43,9 +43,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                          username=username,
                                          user_id=raw_data['data']['user']['id'],
                                          followers_number=raw_data['data']['user']['edge_followed_by']['count'], )
+        except TooManyRedirects:
+            raise LoginNotExist(account_name=username)
         except Exception as ex:
             """
-            For some reason (maybe due to inheritance) cannot handle other types of exceptions here
+            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
             So Exception class is used
             """
             if ex.__dict__.get('status'):
@@ -123,9 +125,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
             return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
                                          username=username,
                                          stories_list=stories_list)
+        except TooManyRedirects:
+            raise LoginNotExist(account_name=username)
         except Exception as ex:
             """
-            For some reason (maybe due to inheritance) cannot handle other types of exceptions here
+            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
             So Exception class is used
             """
             if ex.__dict__.get('status'):

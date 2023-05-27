@@ -22,7 +22,6 @@ def errors_handler_decorator(func):
                 aiohttp.ClientResponseError,
                 aiohttp.ServerDisconnectedError,
                 aiohttp.client_exceptions.ClientProxyConnectionError,
-                aiohttp.TooManyRedirects,
                 ConnectionResetError,
                 ConnectionError,
                 ConnectionAbortedError) as ex:
