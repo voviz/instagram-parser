@@ -13,9 +13,9 @@ class TimestampMixin:
 
 class InstagramAccounts(Model, IdMixin):
     credentials = fields.CharField(max_length=255, unique=True)
-    cookies = fields.CharField(max_length=5000, null=True)
-    user_agent = fields.CharField(max_length=255, null=True)
-    proxy = fields.CharField(max_length=255)
+    cookies = fields.CharField(max_length=5000)
+    user_agent = fields.CharField(max_length=255)
+    proxy = fields.CharField(max_length=255, null=True)
     last_used_at = fields.DatetimeField(null=True)
     daily_usage_rate = fields.IntField(default=0)
 
@@ -41,7 +41,7 @@ class Proxies(Model, IdMixin):
 
 
 class ParserResult(Model, IdMixin, TimestampMixin):
-    instagram_username = fields.CharField(max_length=255, null=True)
+    instagram_username = fields.CharField(max_length=255, unique=True)
     marketplace = fields.CharField(max_length=255, null=True)
     story_publication_date = fields.DatetimeField(null=True)
     sku = fields.IntField(null=True)
