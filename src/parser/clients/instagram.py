@@ -69,7 +69,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     stories_list.append(story)
                 # check story for link
                 if i.get('story_link_stickers'):
-                    story.url = i['story_link_stickers'][0]['story_link']['url']
+                    story.url = self._resolve_stories_link(i['story_link_stickers'][0]['story_link']['url'],
+                                                           account.proxy)
                 # check story for sku in caption
                 if i.get('accessibility_caption'):
                     keywords = ('артикул', 'articul', 'sku')
