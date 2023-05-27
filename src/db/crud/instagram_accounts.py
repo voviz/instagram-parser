@@ -1,10 +1,8 @@
-from datetime import datetime
-
 import tortoise
 from tortoise.expressions import Q
 
 from core.settings import settings
-from db.models import InstagramAccounts, Proxies
+from db.models import InstagramAccounts
 from parser.exceptions import NoAccountsDBError
 
 
@@ -17,9 +15,6 @@ class InstagramAccountsTableDBHandler:
     async def get_accounts_without_proxy(cls) -> list[InstagramAccounts]:
         return await InstagramAccounts.filter(proxy=None).all()
 
-    async def delete_account(self, account: InstagramAccounts) -> None:
-        await account.delete()
-
     @classmethod
     async def get_account(cls) -> InstagramAccounts:
         query = InstagramAccounts.filter(
@@ -29,7 +24,7 @@ class InstagramAccountsTableDBHandler:
             await cls.update_accounts_daily_usage_rate()
             if not (account := await query.first()):
                 raise NoAccountsDBError('No account found for parsing')
-        if (datetime.now() - account.last_used_at).hour >= 24:
+        if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
             # update last_used_at field
             await query.update(last_used_at=tortoise.timezone.now(),
                                daily_usage_rate=0)
@@ -47,12 +42,16 @@ class InstagramAccountsTableDBHandler:
     async def update_accounts_daily_usage_rate(cls) -> None:
         accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all()
         for acc in accounts:
-            if (datetime.now() - acc.last_used_at).hour >= 24:
+            if acc.last_used_at and (tortoise.timezone.now() - acc.last_used_at).seconds // 3600 >= 24:
                 # update last_used_at field
                 await InstagramAccounts.filter(credentials=acc.credentials).update(last_used_at=tortoise.timezone.now(),
                                                                                    daily_usage_rate=0)
 
     @classmethod
-    async def set_proxy_for_accounts(cls, accounts: list[tuple[InstagramAccounts, Proxies]]) -> None:
-        for account, proxy in accounts:
-            await InstagramAccounts.filter(credentials=account.credentials).update(proxy=proxy.proxy)
+    async def set_proxy_for_accounts(cls, accounts: list[InstagramAccounts]) -> None:
+        if accounts:
+            await InstagramAccounts.bulk_update(accounts, ['proxy'])
+
+    @classmethod
+    async def delete_account(cls, account: InstagramAccounts) -> None:
+        await account.delete()
