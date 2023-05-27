@@ -26,12 +26,13 @@ class InstagramAccountsTableDBHandler:
                 raise NoAccountsDBError('No account found for parsing')
         if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
             # update last_used_at field
-            await query.update(last_used_at=tortoise.timezone.now(),
-                               daily_usage_rate=0)
+            await InstagramAccounts.filter(credentials=account.credentials).update(last_used_at=tortoise.timezone.now(),
+                                                                                   daily_usage_rate=0)
         else:
             # update last_used_at field
-            await query.update(last_used_at=tortoise.timezone.now(),
-                               daily_usage_rate=await cls._get_account_daily_usage_rate(account) + 1)
+            await InstagramAccounts.filter(credentials=account.credentials).update(last_used_at=tortoise.timezone.now(),
+                                                                                   daily_usage_rate=await cls._get_account_daily_usage_rate(
+                                                                                       account) + 1)
         return account
 
     @classmethod
