@@ -1,8 +1,9 @@
 import asyncio
 import concurrent.futures
-import multiprocessing
+import random
 
 from core.logs import custom_logger
+from core.settings import settings
 from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
@@ -42,6 +43,8 @@ class Parser:
         # update data in db
         await InstagramLoginsTableDBHandler.update_login(data)
         custom_logger.info(f'{data.username} login successfully updated!')
+        # sleep for n-sec
+        await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX))
 
     def sync_wrapper(self, login: InstagramLogins) -> None:
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -52,7 +55,7 @@ class Parser:
         # on_start run
         logins_for_update = asyncio.run(self.on_start())
         futures = []
-        with concurrent.futures.ProcessPoolExecutor(max_workers=multiprocessing.cpu_count()) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
             for login in logins_for_update:
                 new_future = executor.submit(
                     self.sync_wrapper,
