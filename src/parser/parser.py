@@ -3,6 +3,7 @@ import concurrent.futures
 import multiprocessing
 
 from core.logs import custom_logger
+from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from db.crud.proxies import ProxiesTableDBHandler
@@ -14,6 +15,8 @@ class Parser:
     async def on_start(self):
         custom_logger.info('Start parser ...')
         custom_logger.info('Prepare database ...')
+        # init db
+        await DatabaseConnector().async_init()
         # get new accs and union with proxies
         new_accounts = await InstagramAccountsTableDBHandler.get_accounts_without_proxy()
         proxies = await ProxiesTableDBHandler.get_proxies_all()
