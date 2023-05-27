@@ -2,6 +2,8 @@ import asyncio
 
 import chromedriver_autoinstaller
 import undetected_chromedriver as webdriver
+from aiohttp import TooManyRedirects
+from selenium.common import WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -12,7 +14,8 @@ from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, In
     Marketplaces, AdType
 from parser.clients.ozon import OzonClient
 from parser.clients.wildberris import WildberrisClient
-from parser.exceptions import ThirdPartyApiException, AccountConfirmationRequired, InvalidCredentials
+from parser.exceptions import ThirdPartyApiException, AccountConfirmationRequired, \
+    AccountInvalidCredentials, LoginNotExist
 from parser.proxy_handler import SeleniumProxyHandler
 
 
@@ -40,12 +43,20 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                          username=username,
                                          user_id=raw_data['data']['user']['id'],
                                          followers_number=raw_data['data']['user']['edge_followed_by']['count'], )
-        except ThirdPartyApiException as exc:
-            if exc.status == 400:
-                if exc.answer['message'] == 'useragent mismatch':
-                    raise InvalidCredentials(account_name=username)
-                if exc.answer['message'] in ('challenge_required', 'checkpoint_required'):
-                    raise AccountConfirmationRequired(account_name=username)
+        except Exception as ex:
+            """
+            For some reason (maybe due to inheritance) cannot handle other types of exceptions here
+            So Exception class is used
+            """
+            if ex.__dict__.get('status'):
+                if ex.status == 400:
+                    if ex.answer['message'] == 'useragent mismatch':
+                        raise AccountInvalidCredentials(account=account)
+                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
+                        raise AccountConfirmationRequired(account=account)
+                if ex.status == 404:
+                    raise LoginNotExist(account_name=username)
+            raise ex
 
     async def get_account_stories_by_id(self, username: str, user_id: int) -> InstagramClientAnswer:
         try:
@@ -112,12 +123,20 @@ class InstagramClient(BaseThirdPartyAPIClient):
             return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
                                          username=username,
                                          stories_list=stories_list)
-        except ThirdPartyApiException as exc:
-            if exc.status == 400:
-                if exc.answer['message'] == 'useragent mismatch':
-                    raise InvalidCredentials(account_name=username)
-                if exc.answer['message'] in ('challenge_required', 'checkpoint_required'):
-                    raise AccountConfirmationRequired(account_name=username)
+        except Exception as ex:
+            """
+            For some reason (maybe due to inheritance) cannot handle other types of exceptions here
+            So Exception class is used
+            """
+            if ex.__dict__.get('status'):
+                if ex.status == 400:
+                    if ex.answer['message'] == 'useragent mismatch':
+                        raise AccountInvalidCredentials(account=account)
+                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
+                        raise AccountConfirmationRequired(account=account)
+                if ex.status == 404:
+                    raise LoginNotExist(account_name=username)
+            raise ex
 
     def _resolve_stories_link(self, url: str, proxy: str) -> str:
         version_main = int(chromedriver_autoinstaller.get_chrome_version().split(".")[0])
@@ -134,7 +153,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
             link = driver.current_url
             return link
-        except Exception as e:
-            print(e)
+        except WebDriverException as e:
+            raise e
         finally:
             driver.quit()
