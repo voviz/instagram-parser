@@ -25,7 +25,7 @@ class LoginNotExist(ThirdPartyApiException):
         self.account_name = account_name
 
     def __str__(self):
-        return 'Account not exist: {}'.format(self.account_name)
+        return 'Login not exist: {}'.format(self.account_name)
 
 
 class AccountConfirmationRequired(ThirdPartyApiException):
