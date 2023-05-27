@@ -4,10 +4,12 @@ import aiohttp
 from selenium.common import WebDriverException
 
 from core.logs import custom_logger
+from core.settings import settings
 from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
-from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist
+from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
+    AccountTooManyRequests, NoAccountsDBError
 
 
 def errors_handler_decorator(func):
@@ -34,6 +36,12 @@ def errors_handler_decorator(func):
             # mark login as not existed
             await InstagramLoginsTableDBHandler.mark_as_not_exists(ex.account_name)
             custom_logger.error(ex)
+        except AccountTooManyRequests as ex:
+            custom_logger.error(ex)
+            await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
+        except NoAccountsDBError as ex:
+            custom_logger.error(ex)
+            await asyncio.sleep(1800)
         except WebDriverException as ex:
             custom_logger.error(f'Error with story link resolving process ({type(ex)}): {ex}')
         except Exception as ex:

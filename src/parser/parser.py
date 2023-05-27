@@ -56,7 +56,7 @@ class Parser:
         # on_start run
         logins_for_update = asyncio.run(self.on_start())
         futures = []
-        with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+        with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
             for login in logins_for_update:
                 new_future = executor.submit(
                     self.sync_wrapper,
