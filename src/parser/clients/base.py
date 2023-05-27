@@ -5,7 +5,7 @@ from typing import Any
 import aiohttp as aiohttp
 
 from parser.proxy_handler import ProxyHandler
-from src.parser.exceptions import EmptyResultsException, ThirdPartyApiException, NotFoundException
+from src.parser.exceptions import ThirdPartyApiException
 
 
 class BaseThirdPartyAPIClient:
@@ -45,10 +45,6 @@ class BaseThirdPartyAPIClient:
 
     async def _clean_response(self, res, is_json: bool) -> str:
         try:
-            if res.status == 404:
-                raise NotFoundException(f'{self.api_name} found nothing')
-            if res.status == 500:
-                raise EmptyResultsException(f'{self.api_name} found nothing')
             if res.status != 200:
                 if is_json:
                     answer = await res.json()
