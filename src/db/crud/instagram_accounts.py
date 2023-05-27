@@ -45,7 +45,7 @@ class InstagramAccountsTableDBHandler:
 
     @classmethod
     async def update_accounts_daily_usage_rate(cls) -> None:
-        accounts = await InstagramAccounts.filter(~Q(update_at=None)).all()
+        accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all()
         for acc in accounts:
             if (datetime.now() - acc.last_used_at).hour >= 24:
                 # update last_used_at field
