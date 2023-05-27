@@ -25,3 +25,7 @@ class DatabaseConnector:
         # Generate the schema
         # safe=True - generate schema if not exists in db
         await Tortoise.generate_schemas(safe=True)
+
+    @classmethod
+    async def close(self):
+        await Tortoise.close_connections()
