@@ -12,8 +12,8 @@ class InstagramLoginsTableDBHandler:
 
     @classmethod
     async def get_login(cls) -> InstagramLogins:
-        return await InstagramLogins.filter(Q(update_at=None) | Q(is_exists=True)).order_by('update_at').first()
+        return await InstagramLogins.filter(Q(updated_at=None) | Q(is_exists=True)).order_by('updated_at').first()
 
     @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:
-        return await InstagramLogins.filter(Q(update_at=None) | Q(is_exists=True)).all().order_by('update_at')
+        return await InstagramLogins.filter(Q(updated_at=None) | Q(is_exists=True)).all().order_by('updated_at')
