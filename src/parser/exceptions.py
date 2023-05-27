@@ -64,3 +64,7 @@ class InvalidProxyFormatError(BaseParserException):
 
     def __str__(self):
         return 'Invalid format of proxy: {}'.format(self.proxy)
+
+
+class NoAccountsDBError(BaseParserException):
+    pass
