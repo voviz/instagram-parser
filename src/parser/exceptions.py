@@ -1,5 +1,6 @@
 from typing import Any
 
+from core.settings import settings
 from db.models import InstagramAccounts
 
 
@@ -44,6 +45,15 @@ class AccountInvalidCredentials(ThirdPartyApiException):
         return 'Invalid credentials for account: {}'.format(self.account.credentials)
 
 
+class AccountTooManyRequests(ThirdPartyApiException):
+    def __init__(self, account: InstagramAccounts):
+        self.account = account
+
+    def __str__(self):
+        return 'Too many requests from account: {0} ... Sleep for {1} secs ...'.format(self.account.credentials,
+                                                                                       settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
+
+
 class InvalidProxyFormatError(BaseParserException):
     def __init__(self, proxy: str):
         self.proxy = proxy
@@ -53,4 +63,5 @@ class InvalidProxyFormatError(BaseParserException):
 
 
 class NoAccountsDBError(BaseParserException):
-    pass
+    def __str__(self):
+        return 'No accounts to work with in db ...'
