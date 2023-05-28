@@ -1,3 +1,5 @@
+import random
+
 import tortoise
 from tortoise.expressions import Q
 
@@ -20,9 +22,14 @@ class InstagramAccountsTableDBHandler:
         query = InstagramAccounts.filter(
             ~Q(proxy=None) & Q(daily_usage_rate__lt=settings.ACCOUNT_DAILY_USAGE_RATE)
         ).order_by('last_used_at')
-        if not (account := await query.first()):
+        # to add randomness to db
+        account_list = await query.all().limit(10)
+        account = account_list[random.randint(0, len(account_list) - 1)]
+        if not account:
             await cls.update_accounts_daily_usage_rate()
-            if not (account := await query.first()):
+            account_list = await query.all().limit(10)
+            account = account_list[random.randint(0, len(account_list) - 1)]
+            if not account:
                 raise NoAccountsDBError('No account found for parsing')
         if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
             # update last_used_at field
