@@ -45,3 +45,5 @@ options:
   -as ACCOUNT_TOO_MANY_REQUESTS_SLEEP, --account_too_many_requests_sleep ACCOUNT_TOO_MANY_REQUESTS_SLEEP
                         delay after too many requests error occur (default: None)
 ```
+*Все аргументы имеют значения по умолачнию. Для корректной работы базы данных утсановите свои значения для аргументов: db_host, db_port, db_user, db_password.
+Остальные аргументы имеют оптимальные значения по умолчанию, изменять не рекомендуется.*
