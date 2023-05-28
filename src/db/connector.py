@@ -3,7 +3,7 @@ import logging
 
 from tortoise import Tortoise
 
-from src.core.settings import settings
+from core.settings import settings
 
 log = logging.getLogger(__name__)
 
