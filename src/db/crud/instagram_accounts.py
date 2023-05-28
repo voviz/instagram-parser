@@ -25,14 +25,11 @@ class InstagramAccountsTableDBHandler:
         # filter not used accs
         if not (account_list := await query.filter(last_used_at=None).limit(10).all()):
             account_list = await query.order_by('last_used_at').limit(10).all()
+            if not account_list:
+                await cls.update_accounts_daily_usage_rate()
+                raise NoAccountsDBError('No account found for parsing')
         # to add randomness to db
         account = account_list[random.randint(0, len(account_list) - 1)]
-        if not account:
-            await cls.update_accounts_daily_usage_rate()
-            account_list = await query.order_by('last_used_at').limit(10).all()
-            account = account_list[random.randint(0, len(account_list) - 1)]
-            if not account:
-                raise NoAccountsDBError('No account found for parsing')
         if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
             # update last_used_at field
             await InstagramAccounts.filter(credentials=account.credentials).update(last_used_at=tortoise.timezone.now(),
