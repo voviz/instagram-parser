@@ -21,13 +21,15 @@ class InstagramAccountsTableDBHandler:
     async def get_account(cls) -> InstagramAccounts:
         query = InstagramAccounts.filter(
             ~Q(proxy=None) & Q(daily_usage_rate__lt=settings.ACCOUNT_DAILY_USAGE_RATE)
-        ).order_by('last_used_at')
+        )
+        # filter not used accs
+        if not (account_list := await query.filter(last_used_at=None).limit(10).all()):
+            account_list = await query.order_by('last_used_at').limit(10).all()
         # to add randomness to db
-        account_list = await query.all().limit(10)
         account = account_list[random.randint(0, len(account_list) - 1)]
         if not account:
             await cls.update_accounts_daily_usage_rate()
-            account_list = await query.all().limit(10)
+            account_list = await query.order_by('last_used_at').limit(10).all()
             account = account_list[random.randint(0, len(account_list) - 1)]
             if not account:
                 raise NoAccountsDBError('No account found for parsing')
