@@ -1,5 +1,4 @@
 import tortoise
-from tortoise.expressions import Q
 
 from db.models import InstagramLogins
 from parser.clients.models import InstagramClientAnswer
