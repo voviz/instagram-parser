@@ -31,16 +31,16 @@ def errors_handler_decorator(func):
         except (AccountInvalidCredentials, AccountConfirmationRequired) as ex:
             # delete acc from db
             await InstagramAccountsTableDBHandler.delete_account(ex.account)
-            custom_logger.error(ex)
+            custom_logger.warning(ex)
         except LoginNotExist as ex:
             # mark login as not existed
             await InstagramLoginsTableDBHandler.mark_as_not_exists(ex.account_name)
-            custom_logger.error(ex)
+            custom_logger.warning(ex)
         except AccountTooManyRequests as ex:
-            custom_logger.error(ex)
+            custom_logger.warning(ex)
             await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
         except NoAccountsDBError as ex:
-            custom_logger.error(ex)
+            custom_logger.warning(ex)
             await asyncio.sleep(1800)
         except WebDriverException as ex:
             custom_logger.error(f'Error with story link resolving process ({type(ex)}): {ex}')
