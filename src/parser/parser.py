@@ -2,11 +2,8 @@ import asyncio
 import concurrent.futures
 import random
 
-import tortoise
-
 from core.logs import custom_logger
 from core.settings import settings
-from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from db.crud.proxies import ProxiesTableDBHandler
@@ -38,8 +35,12 @@ class Parser:
     @errors_handler_decorator
     async def collect_instagram_story_data(self, login: InstagramLogins) -> None:
         client = InstagramClient()
+        # get login base info (user_id, is_exists, followers)
         if not login.user_id:
             login = await client.get_account_info_by_user_name(login.username)
+            # update data in db
+            await InstagramLoginsTableDBHandler.update_login(login)
+        # get stories info
         data = await client.get_account_stories_by_id(login.username, login.user_id)
         # update data in db
         await InstagramLoginsTableDBHandler.update_login(data)
