@@ -30,7 +30,7 @@ class OzonClient(BaseThirdPartyAPIClient):
         return False
 
     @staticmethod
-    async def extract_sku_from_url(url: str):
+    def extract_sku_from_url(url: str):
         if 'ozon' in url:
             if sku := url.split('/')[-2].split('-')[-1].isdigit():
                 return int(sku)

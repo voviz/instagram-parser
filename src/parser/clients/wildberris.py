@@ -26,7 +26,7 @@ class WildberrisClient(BaseThirdPartyAPIClient):
         return False
 
     @staticmethod
-    async def extract_sku_from_url(url: str):
+    def extract_sku_from_url(url: str):
         if 'wildberris' in url:
             if sku := url.split('/')[-2].isdigit():
                 return int(sku)
