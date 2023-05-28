@@ -1,5 +1,6 @@
 import asyncio
 
+import aiohttp
 import chromedriver_autoinstaller
 import undetected_chromedriver as webdriver
 from aiohttp import TooManyRedirects
@@ -48,6 +49,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                          followers_number=raw_data['data']['user']['edge_followed_by']['count'], )
         except TooManyRedirects:
             raise AccountInvalidCredentials(account=account)
+        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
+            ex.proxy = account.proxy
+            raise ex
         except Exception as ex:
             """
             For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
@@ -140,6 +144,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                          stories_list=stories_list)
         except TooManyRedirects:
             raise AccountInvalidCredentials(account=account)
+        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
+            ex.proxy = account.proxy
+            raise ex
         except Exception as ex:
             """
             For some reason (maybe due to inheritance) cannot handle user-types of exceptions here

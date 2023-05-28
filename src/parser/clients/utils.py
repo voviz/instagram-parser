@@ -28,6 +28,8 @@ def errors_handler_decorator(func):
                 ConnectionError,
                 ConnectionAbortedError) as ex:
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
+        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
+            custom_logger.error(f'Cannot connect via proxy: {ex.proxy}')
         except (AccountInvalidCredentials, AccountConfirmationRequired) as ex:
             # delete acc from db
             await InstagramAccountsTableDBHandler.delete_account(ex.account)
