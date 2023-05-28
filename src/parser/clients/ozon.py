@@ -28,3 +28,10 @@ class OzonClient(BaseThirdPartyAPIClient):
         if find_header and 'найден 1 товар' not in find_header.text.lower():
             return True
         return False
+
+    @staticmethod
+    async def extract_sku_from_url(url: str):
+        if 'ozon' in url:
+            if sku := url.split('/')[-2].split('-')[-1].isdigit():
+                return int(sku)
+        return None

@@ -24,3 +24,10 @@ class WildberrisClient(BaseThirdPartyAPIClient):
         if raw_data['data']['products']:
             return True
         return False
+
+    @staticmethod
+    async def extract_sku_from_url(url: str):
+        if 'wildberris' in url:
+            if sku := url.split('/')[-2].isdigit():
+                return int(sku)
+        return None
