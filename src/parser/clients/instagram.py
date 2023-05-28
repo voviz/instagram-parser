@@ -14,7 +14,7 @@ from parser.clients.base import BaseThirdPartyAPIClient
 from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
 from parser.clients.ozon import OzonClient
-from parser.clients.wildberris import WildberrisClient
+from parser.clients.wildberries import WildberrisClient
 from parser.exceptions import AccountConfirmationRequired, \
     AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError
 from parser.proxy_handler import SeleniumProxyHandler
