@@ -1,7 +1,7 @@
 import asyncio
 
 import aiohttp
-from selenium.common import WebDriverException
+from selenium.common import WebDriverException, TimeoutException
 
 from core.logs import custom_logger
 from core.settings import settings
@@ -42,8 +42,10 @@ def errors_handler_decorator(func):
         except NoAccountsDBError as ex:
             custom_logger.warning(ex)
             await asyncio.sleep(1800)
+        except TimeoutException as ex:
+            custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
         except WebDriverException as ex:
-            custom_logger.error(f'Error with story link resolving process ({type(ex)}): {ex}')
+            custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)})')
         except Exception as ex:
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
         finally:
