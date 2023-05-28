@@ -79,9 +79,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 proxy=account.proxy,
             )
             stories_list = []
-            # check if any reels
+            # check if any reels exist
             if raw_data['reels']:
-                for i in raw_data['reels'][str(user_id)]['items']:
+                # make reverse iteration in order to find the last story with link
+                for i in reversed(raw_data['reels'][str(user_id)]['items']):
                     if i['media_type'] == ThirdPartyAPIMediaType.photo:
                         story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo,
                                                url=i['image_versions2']['candidates'][0]['url'],
@@ -130,7 +131,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 story.sku = WildberrisClient.extract_sku_from_url(story.url)
                             story.ad_type = AdType.link
 
-                    stories_list.append(story)
+                    if story.sku:
+                        stories_list.append(story)
+                        break
 
             return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
                                          username=username,
