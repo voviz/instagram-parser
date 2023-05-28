@@ -7,10 +7,11 @@ from core.settings import settings
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from db.crud.parser_result import ParserResultTableDBHandler
-from db.crud.proxies import ProxiesTableDBHandler
+from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.utils import errors_handler_decorator
+from parser.exceptions import NoProxyDBError
 
 
 class Parser:
@@ -19,11 +20,13 @@ class Parser:
         custom_logger.info('Start parser ...')
         custom_logger.info('Prepare database ...')
         # get new accs and union with proxies
-        new_accounts = await InstagramAccountsTableDBHandler.get_accounts_without_proxy()
-        proxies = await ProxiesTableDBHandler.get_proxies_all()
-        for i, acc in enumerate(new_accounts):
-            acc.proxy = proxies[i % len(proxies)].proxy
-        await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)
+        if new_accounts := await InstagramAccountsTableDBHandler.get_accounts_without_proxy():
+            proxies = await ProxiesTableDBHandler.get_parser_proxies_all()
+            if not proxies:
+                raise NoProxyDBError(ProxyTypes.parser)
+            for i, acc in enumerate(new_accounts):
+                acc.proxy = proxies[i % len(proxies)].proxy
+            await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)
         # update usage rates for all accs
         await InstagramAccountsTableDBHandler.update_accounts_daily_usage_rate()
         custom_logger.info('Parser is ready ...')
