@@ -118,13 +118,16 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                     # check story for link
                     if not story.sku and i.get('story_link_stickers'):
-                        story.url = self._resolve_stories_link(i['story_link_stickers'][0]['story_link']['url'],
-                                                               account.proxy)
-                        if 'ozon' in story.url:
-                            story.marketplace = Marketplaces.ozon
-                        elif 'wildberries' in story.url:
-                            story.marketplace = Marketplaces.wildberries
-                        story.ad_type = AdType.link
+                        url = i['story_link_stickers'][0]['story_link']['url']
+                        if 'ozon' in url or 'wildberries' in url:
+                            story.url = self._resolve_stories_link(url, account.proxy)
+                            if 'ozon' in story.url:
+                                story.marketplace = Marketplaces.ozon
+                                story.sku = WildberrisClient.extract_sku_from_url(story.url)
+                            elif 'wildberries' in story.url:
+                                story.marketplace = Marketplaces.wildberries
+                                story.sku = OzonClient.extract_sku_from_url(story.url)
+                            story.ad_type = AdType.link
 
                     stories_list.append(story)
 
