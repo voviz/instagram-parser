@@ -45,4 +45,3 @@ options:
   -as ACCOUNT_TOO_MANY_REQUESTS_SLEEP, --account_too_many_requests_sleep ACCOUNT_TOO_MANY_REQUESTS_SLEEP
                         delay after too many requests error occur (default: None)
 ```
-### Запуск из .exe файла
