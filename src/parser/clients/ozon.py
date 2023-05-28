@@ -34,6 +34,5 @@ class OzonClient(BaseThirdPartyAPIClient):
         if 'ozon' in url:
             if 'product_id' in url:
                 return int(url.split('product_id=')[0])
-            if sku := url.split('/')[-2].split('-')[-1].isdigit():
-                return int(sku)
+            return int(url.split('/')[-2].split('-')[-1])
         return None
