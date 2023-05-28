@@ -1,3 +1,4 @@
+import tortoise
 from tortoise.expressions import Q
 
 from db.models import InstagramLogins
@@ -9,7 +10,8 @@ class InstagramLoginsTableDBHandler:
     async def update_login(cls, new_login_data: InstagramClientAnswer) -> None:
         await InstagramLogins.filter(username=new_login_data.username).update(user_id=new_login_data.user_id,
                                                                               followers=new_login_data.followers_number,
-                                                                              is_exists=True)
+                                                                              is_exists=True,
+                                                                              updated_at=tortoise.timezone.now())
 
     @classmethod
     async def get_login(cls) -> InstagramLogins:
@@ -21,4 +23,5 @@ class InstagramLoginsTableDBHandler:
 
     @classmethod
     async def mark_as_not_exists(cls, username: str) -> None:
-        await InstagramLogins.filter(username=username).all().update(is_exists=False)
+        await InstagramLogins.filter(username=username).all().update(is_exists=False,
+                                                                     updated_at=tortoise.timezone.now())
