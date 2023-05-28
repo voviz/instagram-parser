@@ -14,12 +14,11 @@ class InstagramLoginsTableDBHandler:
                                                                               updated_at=tortoise.timezone.now())
 
     @classmethod
-    async def get_login(cls) -> InstagramLogins:
-        return await InstagramLogins.filter(Q(updated_at=None) | Q(is_exists=True)).order_by('updated_at').first()
-
-    @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:
-        return await InstagramLogins.filter(Q(updated_at=None) | Q(is_exists=True)).all().order_by('updated_at')
+        not_updated_logins = await InstagramLogins.filter(updated_at=None).all()
+        updated_logins = await InstagramLogins.filter(is_exists=True).all().order_by('updated_at')
+        not_updated_logins.extend(updated_logins)
+        return not_updated_logins
 
     @classmethod
     async def mark_as_not_exists(cls, username: str) -> None:
