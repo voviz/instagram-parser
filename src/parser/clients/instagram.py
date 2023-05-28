@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.proxies import ProxiesTableDBHandler
+from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from parser.clients.base import BaseThirdPartyAPIClient
 from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
@@ -121,7 +121,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     if not story.sku and i.get('story_link_stickers'):
                         url = i['story_link_stickers'][0]['story_link']['url']
                         if 'ozon' in url or 'wildberries' in url:
-                            story.url = self._resolve_stories_link(url)
+                            story.url = await self._resolve_stories_link(url)
                             if 'ozon' in story.url:
                                 story.marketplace = Marketplaces.ozon
                                 story.sku = OzonClient.extract_sku_from_url(story.url)
@@ -154,11 +154,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise LoginNotExist(account_name=username)
             raise ex
 
-    def _resolve_stories_link(self, url: str) -> str:
+    async def _resolve_stories_link(self, url: str) -> str:
         version_main = int(chromedriver_autoinstaller.get_chrome_version().split(".")[0])
         ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
         if not ozon_proxy:
-            raise NoProxyDBError(type='ozon')
+            raise NoProxyDBError(ProxyTypes.ozon)
         selenium_proxy = SeleniumProxyHandler(*SeleniumProxyHandler.convert_to_selenium_format(ozon_proxy.proxy))
         options = webdriver.ChromeOptions()
         options.add_argument(f'--load-extension={selenium_proxy.directory}')
