@@ -6,6 +6,7 @@ from core.logs import custom_logger
 from core.settings import settings
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
+from db.crud.parser_result import ParserResultTableDBHandler
 from db.crud.proxies import ProxiesTableDBHandler
 from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
@@ -42,8 +43,8 @@ class Parser:
             await InstagramLoginsTableDBHandler.update_login(login)
         # get stories info
         data = await client.get_account_stories_by_id(login.username, login.user_id)
-        # update data in db
-        await InstagramLoginsTableDBHandler.update_login(data)
+        # update data in result table db
+        await ParserResultTableDBHandler.update_result(data)
         custom_logger.info(f'{data.username} login successfully updated!')
         # sleep for n-sec
         await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX))
