@@ -25,8 +25,8 @@ class InstagramAccounts(Model, IdMixin):
 
 class InstagramLogins(Model, IdMixin, TimestampMixin):
     username = fields.CharField(max_length=255, unique=True)
-    user_id = fields.IntField(null=True)
-    followers = fields.IntField(null=True)
+    user_id = fields.BigIntField(null=True)
+    followers = fields.BigIntField(null=True)
     is_exists = fields.BooleanField(null=True)
 
     class Meta:
@@ -44,7 +44,7 @@ class ParserResult(Model, IdMixin, TimestampMixin):
     instagram_username = fields.CharField(max_length=255, unique=True)
     marketplace = fields.CharField(max_length=255, null=True)
     story_publication_date = fields.DatetimeField(null=True)
-    sku = fields.IntField(null=True)
+    sku = fields.BigIntField(null=True)
     ad_type = fields.CharField(max_length=255, null=True)
     is_checked = fields.BooleanField(default=False)
 
