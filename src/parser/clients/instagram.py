@@ -3,19 +3,20 @@ import asyncio
 import chromedriver_autoinstaller
 import undetected_chromedriver as webdriver
 from aiohttp import TooManyRedirects
-from selenium.common import WebDriverException
+from selenium.common import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from db.crud.proxies import ProxiesTableDBHandler
 from parser.clients.base import BaseThirdPartyAPIClient
 from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
 from parser.clients.ozon import OzonClient
 from parser.clients.wildberris import WildberrisClient
 from parser.exceptions import AccountConfirmationRequired, \
-    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests
+    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError
 from parser.proxy_handler import SeleniumProxyHandler
 
 
@@ -120,13 +121,13 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     if not story.sku and i.get('story_link_stickers'):
                         url = i['story_link_stickers'][0]['story_link']['url']
                         if 'ozon' in url or 'wildberries' in url:
-                            story.url = self._resolve_stories_link(url, account.proxy)
+                            story.url = self._resolve_stories_link(url)
                             if 'ozon' in story.url:
                                 story.marketplace = Marketplaces.ozon
-                                story.sku = WildberrisClient.extract_sku_from_url(story.url)
+                                story.sku = OzonClient.extract_sku_from_url(story.url)
                             elif 'wildberries' in story.url:
                                 story.marketplace = Marketplaces.wildberries
-                                story.sku = OzonClient.extract_sku_from_url(story.url)
+                                story.sku = WildberrisClient.extract_sku_from_url(story.url)
                             story.ad_type = AdType.link
 
                     stories_list.append(story)
@@ -153,22 +154,37 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise LoginNotExist(account_name=username)
             raise ex
 
-    def _resolve_stories_link(self, url: str, proxy: str) -> str:
+    def _resolve_stories_link(self, url: str) -> str:
         version_main = int(chromedriver_autoinstaller.get_chrome_version().split(".")[0])
-        proxy = SeleniumProxyHandler(*SeleniumProxyHandler.convert_to_selenium_format(proxy))
+        ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
+        if not ozon_proxy:
+            raise NoProxyDBError(type='ozon')
+        selenium_proxy = SeleniumProxyHandler(*SeleniumProxyHandler.convert_to_selenium_format(ozon_proxy.proxy))
         options = webdriver.ChromeOptions()
-        options.add_argument(f'--load-extension={proxy.directory}')
+        options.add_argument(f'--load-extension={selenium_proxy.directory}')
         driver = webdriver.Chrome(version_main=version_main, headless=True, options=options)
         try:
             driver.get(url)
-            button = driver.find_element(By.TAG_NAME, 'button')
-            button.click()
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, '__ozon'))
-            )
+            if 'ozon' in driver.current_url:
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.ID, '__ozon'))
+                )
+            else:
+                try:
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, 'product-page'))
+                    )
+                except TimeoutException:
+                    # case: when landing site occured before ozon redirect
+                    button = driver.find_element(By.TAG_NAME, 'button')
+                    button.click()
+                    WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CLASS_NAME, 'product-page'))
+                    )
             link = driver.current_url
             return link
-        except WebDriverException as e:
-            raise e
+        except TimeoutException as ex:
+            ex.url = driver.current_url
+            raise ex
         finally:
             driver.quit()

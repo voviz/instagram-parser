@@ -35,6 +35,7 @@ class InstagramLogins(Model, IdMixin, TimestampMixin):
 
 class Proxies(Model, IdMixin):
     proxy = fields.CharField(max_length=255, unique=True)
+    type = fields.CharField(max_length=255)
 
     class Meta:
         table = 'proxies'

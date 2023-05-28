@@ -9,7 +9,7 @@ from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
-    AccountTooManyRequests, NoAccountsDBError
+    AccountTooManyRequests, NoAccountsDBError, NoProxyDBError
 
 
 def errors_handler_decorator(func):
@@ -39,7 +39,7 @@ def errors_handler_decorator(func):
         except AccountTooManyRequests as ex:
             custom_logger.warning(ex)
             await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
-        except NoAccountsDBError as ex:
+        except (NoAccountsDBError, NoProxyDBError) as ex:
             custom_logger.warning(ex)
             await asyncio.sleep(1800)
         except TimeoutException as ex:

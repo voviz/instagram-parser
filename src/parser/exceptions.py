@@ -65,3 +65,11 @@ class InvalidProxyFormatError(BaseParserException):
 class NoAccountsDBError(BaseParserException):
     def __str__(self):
         return 'No accounts to work with in db ...'
+
+
+class NoProxyDBError(BaseParserException):
+    def __init__(self, type: str):
+        self.type = type
+
+    def __str__(self):
+        return f'No proxies of type {self.type} to work with in db ...'

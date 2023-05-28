@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str = Field(default='db', env='POSTGRES_HOST')
     POSTGRES_PORT: int = Field(default=5432, env='POSTGRES_PORT')
     POSTGRES_DB: str = Field(default='postgres', env='POSTGRES_DB')
+    # parser settings
     ACCOUNT_DAILY_USAGE_RATE: int = Field(default=150, env='ACCOUNT_DAILY_USAGE_RATE')
     PROCESS_COUNT: int = Field(default=multiprocessing.cpu_count(), env='PROCESS_COUNT')
     UPDATE_PROCESS_DELAY_MAX: int = Field(default=2, env='UPDATE_PROCESS_DELAY_MAX')
