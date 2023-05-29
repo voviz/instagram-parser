@@ -3,8 +3,10 @@ import asyncio
 import concurrent.futures
 import random
 
+import pydantic
+
 from core.logs import custom_logger
-from core.settings import settings
+from core.settings import settings, Settings
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from db.crud.parser_result import ParserResultTableDBHandler
@@ -59,43 +61,52 @@ class Parser:
         loop.run_until_complete(self.collect_instagram_story_data(login))
 
     def run(self):
-        # parse cmd args
-        parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('-db_host', help='db host address')
-        parser.add_argument('-db_port', help='db host port')
-        parser.add_argument('-db_user', help='db host user')
-        parser.add_argument('-db_password', help='db host password')
-        parser.add_argument('-ar', '--account_daily_usage_rate', help='each account max daily usage rate')
-        parser.add_argument('-pc', '--process_count', help='number of parallel process')
-        parser.add_argument('-um', '--update_process_delay_max',
-                            help='max delay (choose randomly [0:value) for update process delay')
-        parser.add_argument('-as', '--account_too_many_requests_sleep', help='delay after too many requests error occur')
-        args = parser.parse_args()
-        if args.db_host:
-            settings.POSTGRES_HOST = args.db_host
-        if args.db_port:
-            settings.POSTGRES_PORT = args.db_port
-        if args.db_user:
-            settings.POSTGRES_USER = args.db_user
-        if args.db_password:
-            settings.POSTGRES_PASSWORD = args.db_password
-        if args.account_daily_usage_rate:
-            settings.ACCOUNT_DAILY_USAGE_RATE = args.account_daily_usage_rate
-        if args.process_count:
-            settings.PROCESS_COUNT = args.process_count
-        if args.update_process_delay_max:
-            settings.UPDATE_PROCESS_DELAY_MAX = args.update_process_delay_max
-        if args.account_too_many_requests_sleep:
-            settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP = args.account_too_many_requests_sleep
+        try:
+            # load vars to settings
+            settings = Settings()
+            # parse cmd args
+            parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+            parser.add_argument('-db_host', help='db host address')
+            parser.add_argument('-db_port', help='db host port')
+            parser.add_argument('-db_user', help='db host user')
+            parser.add_argument('-db_password', help='db host password')
+            parser.add_argument('-ar', '--account_daily_usage_rate', help='each account max daily usage rate')
+            parser.add_argument('-pc', '--process_count', help='number of parallel process')
+            parser.add_argument('-um', '--update_process_delay_max',
+                                help='max delay (choose randomly [0:value) for update process delay')
+            parser.add_argument('-as', '--account_too_many_requests_sleep',
+                                help='delay after too many requests error occur')
+            args = parser.parse_args()
+            if args.db_host:
+                settings.POSTGRES_HOST = args.db_host
+            if args.db_port:
+                settings.POSTGRES_PORT = args.db_port
+            if args.db_user:
+                settings.POSTGRES_USER = args.db_user
+            if args.db_password:
+                settings.POSTGRES_PASSWORD = args.db_password
+            if args.account_daily_usage_rate:
+                settings.ACCOUNT_DAILY_USAGE_RATE = args.account_daily_usage_rate
+            if args.process_count:
+                settings.PROCESS_COUNT = args.process_count
+            if args.update_process_delay_max:
+                settings.UPDATE_PROCESS_DELAY_MAX = args.update_process_delay_max
+            if args.account_too_many_requests_sleep:
+                settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP = args.account_too_many_requests_sleep
 
-        # on_start run
-        logins_for_update = asyncio.run(self.on_start())
-        futures = []
-        with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
-            for login in logins_for_update:
-                new_future = executor.submit(
-                    self.sync_wrapper,
-                    login
-                )
-                futures.append(new_future)
-        concurrent.futures.wait(futures)
+            # on_start run
+            if logins_for_update := asyncio.run(self.on_start()):
+                futures = []
+                with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
+                    for login in logins_for_update:
+                        new_future = executor.submit(
+                            self.sync_wrapper,
+                            login
+                        )
+                        futures.append(new_future)
+                concurrent.futures.wait(futures)
+            else:
+                custom_logger.warning('No logins for update found!')
+                custom_logger.warning('Check your db and credentials in .env file!')
+        except BaseException as ex:
+            custom_logger.error(ex)
