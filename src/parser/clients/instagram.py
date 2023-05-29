@@ -194,6 +194,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
             link = driver.current_url
             return link
         except TimeoutException as ex:
+            # case: when timout occured after redirect
+            if any([WildberrisClient.extract_sku_from_url(driver.current_url.url),
+                    OzonClient.extract_sku_from_url(driver.current_url.url)]):
+                return driver.current_url
             ex.url = driver.current_url
             raise ex
         finally:
