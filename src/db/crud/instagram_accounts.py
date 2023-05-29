@@ -30,8 +30,8 @@ class InstagramAccountsTableDBHandler:
                 raise NoAccountsDBError('No account found for parsing')
         # to add randomness to db
         account = account_list[random.randint(0, len(account_list) - 1)]
+        # check account daly usage
         if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
-            # update last_used_at field
             await InstagramAccounts.filter(credentials=account.credentials).update(last_used_at=tortoise.timezone.now(),
                                                                                    daily_usage_rate=0)
         else:
@@ -50,9 +50,7 @@ class InstagramAccountsTableDBHandler:
         accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all()
         for acc in accounts:
             if acc.last_used_at and (tortoise.timezone.now() - acc.last_used_at).seconds // 3600 >= 24:
-                # update last_used_at field
-                await InstagramAccounts.filter(credentials=acc.credentials).update(last_used_at=tortoise.timezone.now(),
-                                                                                   daily_usage_rate=0)
+                await InstagramAccounts.filter(credentials=acc.credentials).update(daily_usage_rate=0)
 
     @classmethod
     async def set_proxy_for_accounts(cls, accounts: list[InstagramAccounts]) -> None:
