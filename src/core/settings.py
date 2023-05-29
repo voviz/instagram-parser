@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # main db credentials
     POSTGRES_USER: str = Field(default='postgres', env='POSTGRES_USER')
     POSTGRES_PASSWORD: str = Field(default='postgres', env='POSTGRES_PASSWORD')
-    POSTGRES_HOST: str = Field(default='db', env='POSTGRES_HOST')
+    POSTGRES_HOST: str = Field(default='localhost', env='POSTGRES_HOST')
     POSTGRES_PORT: int = Field(default=5432, env='POSTGRES_PORT')
     POSTGRES_DB: str = Field(default='postgres', env='POSTGRES_DB')
     # parser settings
