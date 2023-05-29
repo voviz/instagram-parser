@@ -28,5 +28,6 @@ class WildberrisClient(BaseThirdPartyAPIClient):
     @staticmethod
     def extract_sku_from_url(url: str):
         if 'wildberries' in url:
-            return int(url.split('/')[-2])
+            if '/catalog/' in url:
+                return int(url.split('/')[-2])
         return None
