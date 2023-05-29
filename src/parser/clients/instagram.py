@@ -1,4 +1,5 @@
 import asyncio
+import concurrent.futures
 
 import aiohttp
 import chromedriver_autoinstaller
@@ -10,15 +11,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from parser.clients.base import BaseThirdPartyAPIClient
 from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
 from parser.clients.ozon import OzonClient
 from parser.clients.wildberries import WildberrisClient
 from parser.exceptions import AccountConfirmationRequired, \
-    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError
-from parser.proxy_handler import SeleniumProxyHandler
+    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests
 
 
 class InstagramClient(BaseThirdPartyAPIClient):
@@ -126,7 +125,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     if not story.sku and i.get('story_link_stickers'):
                         url = i['story_link_stickers'][0]['story_link']['url']
                         if 'ozon' in url or 'wildberries' in url:
-                            story.url = await self._resolve_stories_link(url)
+                            story.url = await asyncio.get_event_loop().run_in_executor(concurrent.futures.ProcessPoolExecutor(),
+                                                                                       self._resolve_stories_link,
+                                                                                       url)
                             if 'ozon' in story.url:
                                 story.marketplace = Marketplaces.ozon
                                 story.sku = OzonClient.extract_sku_from_url(story.url)
@@ -164,15 +165,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise LoginNotExist(account_name=username)
             raise ex
 
-    async def _resolve_stories_link(self, url: str) -> str:
+    def _resolve_stories_link(self, url: str) -> str:
         version_main = int(chromedriver_autoinstaller.get_chrome_version().split(".")[0])
-        ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
-        if not ozon_proxy:
-            raise NoProxyDBError(ProxyTypes.ozon)
-        selenium_proxy = SeleniumProxyHandler(*SeleniumProxyHandler.convert_to_selenium_format(ozon_proxy.proxy))
-        options = webdriver.ChromeOptions()
-        options.add_argument(f'--load-extension={selenium_proxy.directory}')
-        driver = webdriver.Chrome(version_main=version_main, headless=True, options=options)
+        driver = webdriver.Chrome(version_main=version_main, headless=True)
         try:
             driver.get(url)
             if 'ozon' in driver.current_url:

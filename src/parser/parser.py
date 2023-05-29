@@ -2,8 +2,7 @@ import argparse
 import asyncio
 import concurrent.futures
 import random
-
-import pydantic
+from aiostream import stream, pipe
 
 from core.logs import custom_logger
 from core.settings import settings, Settings
@@ -13,8 +12,10 @@ from db.crud.parser_result import ParserResultTableDBHandler
 from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
+from parser.clients.models import InstagramClientAnswer
 from parser.clients.utils import errors_handler_decorator
 from parser.exceptions import NoProxyDBError
+from parser.utils import chunks
 
 
 class Parser:
@@ -40,7 +41,7 @@ class Parser:
         return logins_for_update
 
     @errors_handler_decorator
-    async def collect_instagram_story_data(self, login: InstagramLogins) -> None:
+    async def collect_instagram_story_data(self, login: InstagramLogins) -> InstagramClientAnswer:
         client = InstagramClient()
         # get login base info (user_id, is_exists, followers)
         if not login.user_id:
@@ -51,14 +52,21 @@ class Parser:
         data = await client.get_account_stories_by_id(login.username, login.user_id)
         # update data in result table db
         await ParserResultTableDBHandler.update_result(data)
-        custom_logger.info(f'{data.username} login successfully updated!')
         # sleep for n-sec
         await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX))
 
-    def sync_wrapper(self, login: InstagramLogins) -> None:
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        return data
+
+    async def update_process(self, chunk: list[InstagramLogins]):
+        xs = stream.iterate(chunk) | pipe.map(self.collect_instagram_story_data, ordered=True, task_limit=3)
+        async with xs.stream() as streamer:
+            async for login in streamer:
+                if login:
+                    custom_logger.info(f'{login.username} login successfully updated!')
+
+    def sync_wrapper(self, chunk: list[InstagramLogins]) -> None:
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.collect_instagram_story_data(login))
+        loop.run_until_complete(self.update_process(chunk))
 
     def run(self):
         try:
@@ -96,12 +104,14 @@ class Parser:
 
             # on_start run
             if logins_for_update := asyncio.run(self.on_start()):
+                # split logins list to chunks depends on PROCESS_COUNT
+                logins_chunks = list(chunks(logins_for_update, len(logins_for_update) // settings.PROCESS_COUNT))
                 futures = []
                 with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
-                    for login in logins_for_update:
+                    for chunk in logins_chunks:
                         new_future = executor.submit(
                             self.sync_wrapper,
-                            login
+                            chunk
                         )
                         futures.append(new_future)
                 concurrent.futures.wait(futures)
