@@ -3,8 +3,6 @@ import asyncio
 import concurrent.futures
 import random
 
-import pydantic
-
 from core.logs import custom_logger
 from core.settings import settings, Settings
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
