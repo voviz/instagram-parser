@@ -1,16 +1,14 @@
 import asyncio
 
 import aiohttp
-import chromedriver_autoinstaller
-import undetected_chromedriver as webdriver
 from aiohttp import TooManyRedirects
-from selenium.common import TimeoutException
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
+from seleniumbase import SB
 
+from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
+from db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
 from parser.clients.base import BaseThirdPartyAPIClient
 from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
@@ -18,7 +16,7 @@ from parser.clients.ozon import OzonClient
 from parser.clients.wildberries import WildberrisClient
 from parser.exceptions import AccountConfirmationRequired, \
     AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError
-from parser.proxy_handler import SeleniumProxyHandler
+from parser.proxy_handler import ProxyHandler
 
 
 class InstagramClient(BaseThirdPartyAPIClient):
@@ -165,40 +163,32 @@ class InstagramClient(BaseThirdPartyAPIClient):
             raise ex
 
     async def _resolve_stories_link(self, url: str) -> str:
-        version_main = int(chromedriver_autoinstaller.get_chrome_version().split(".")[0])
+        # get proxy
+        await DatabaseConnector().async_init()
         ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
         if not ozon_proxy:
             raise NoProxyDBError(ProxyTypes.ozon)
-        selenium_proxy = SeleniumProxyHandler(*SeleniumProxyHandler.convert_to_selenium_format(ozon_proxy.proxy))
-        options = webdriver.ChromeOptions()
-        options.add_argument(f'--load-extension={selenium_proxy.directory}')
-        driver = webdriver.Chrome(version_main=version_main, headless=True, options=options)
-        try:
-            driver.get(url)
-            if 'ozon' in driver.current_url:
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, '__ozon'))
-                )
-            else:
+        # init client
+        with SB(uc=True, headless2=True, proxy=ProxyHandler.convert_to_seleniumbase_format(ozon_proxy.proxy)) as sb:
+            try:
+                sb.open(url)
+                # case: redirect button on page
                 try:
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, 'product-page'))
-                    )
-                except TimeoutException:
-                    # case: when landing site occured before ozon redirect
-                    button = driver.find_element(By.TAG_NAME, 'button')
-                    button.click()
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, 'product-page'))
-                    )
-            link = driver.current_url
-            return link
-        except TimeoutException as ex:
-            # case: when timout occured after redirect
-            if any([WildberrisClient.extract_sku_from_url(driver.current_url.url),
-                    OzonClient.extract_sku_from_url(driver.current_url.url)]):
-                return driver.current_url
-            ex.url = driver.current_url
-            raise ex
-        finally:
-            driver.quit()
+                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=10)
+                    if redirect_button.text == 'Перейти по ссылке':
+                        redirect_button.click()
+                except NoSuchElementException:
+                    pass
+                if 'ozon' in sb.get_current_url():
+                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=10)
+                else:
+                    sb.wait_for_element_present('product-page', by=By.CLASS_NAME, timeout=10)
+                link = sb.get_current_url()
+                return link
+            except NoSuchElementException as ex:
+                # case: when timout occured after redirect
+                if any([WildberrisClient.extract_sku_from_url(sb.get_current_url()),
+                        OzonClient.extract_sku_from_url(sb.get_current_url())]):
+                    return sb.get_current_url()
+                ex.url = sb.get_current_url()
+                raise ex

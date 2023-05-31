@@ -47,7 +47,8 @@ def errors_handler_decorator(func):
         except TimeoutException as ex:
             custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
         except WebDriverException as ex:
-            custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)})')
+            custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
+            custom_logger.error(f'Maybe something occur with "ozon" proxy....')
         except Exception as ex:
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
         finally:

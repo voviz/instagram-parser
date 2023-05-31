@@ -34,6 +34,35 @@ class ProxyHandler:
 
         return f'http://{login}:{password}@{ip}:{port}'
 
+    @staticmethod
+    def convert_to_seleniumbase_format(proxy: str) -> str:
+        """
+        convert to format -> login:password@ip:port
+        """
+        try:
+            # split proxy to the parts
+            if '@' in proxy:
+                proxy = proxy.lstrip('http://').split('@')
+                proxy_parts = []
+                proxy_parts.extend(proxy[0].split(':'))
+                proxy_parts.extend(proxy[1].split(':'))
+            else:
+                proxy_parts = proxy.lstrip('http://').split(':')
+            # check each part
+            for part in proxy_parts:
+                if part.isdigit():
+                    port = part
+                elif '.' in part:
+                    ip = part
+            if proxy_parts.index(ip) == 2 and proxy_parts.index(port) == 3:
+                login, password = proxy_parts[0], proxy_parts[1]
+            else:
+                login, password = proxy_parts[2], proxy_parts[3]
+        except Exception:
+            raise InvalidProxyFormatError(proxy)
+
+        return f'{login}:{password}@{ip}:{port}'
+
 
 class SeleniumProxyHandler:
     """Proxy format for selenium webdriver."""
