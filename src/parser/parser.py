@@ -103,15 +103,10 @@ class Parser:
             while True:
                 # on_start run
                 if logins_for_update := asyncio.run(self.on_start()):
-                    futures = []
                     with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
-                        for login in logins_for_update:
-                            new_future = executor.submit(
-                                self.sync_wrapper,
-                                login
-                            )
-                            futures.append(new_future)
-                    concurrent.futures.wait(futures)
+                        futures = [executor.submit(self.sync_wrapper, login) for login in logins_for_update]
+                        for future in concurrent.futures.as_completed(futures):
+                            future.result()
                     custom_logger.info(f'All {len(logins_for_update)} logins updated!')
                     custom_logger.info(f'Automatic restart of the parser after '
                                        f'{settings.PARSER_BETWEEN_RESTARTS_SLEEP_SEC} secs ...')
