@@ -6,17 +6,16 @@ from parser.clients.models import InstagramClientAnswer
 
 class ParserResultTableDBHandler:
     @classmethod
-    async def update_result(cls, login: InstagramClientAnswer) -> None:
+    async def add_result(cls, login: InstagramClientAnswer) -> None:
         if login.stories_list:
             for story in login.stories_list:
-                await ParserResult.update_or_create(instagram_username=login.username,
-                                                    marketplace=story.marketplace.value,
-                                                    story_publication_date=story.created_at,
-                                                    sku=story.sku,
-                                                    ad_type=story.ad_type.value,
-                                                    updated_at=tortoise.timezone.now(),)
+                await ParserResult.create(instagram_username=login.username,
+                                          marketplace=story.marketplace.value,
+                                          story_publication_date=story.created_at,
+                                          sku=story.sku,
+                                          ad_type=story.ad_type.value,
+                                          updated_at=tortoise.timezone.now(), )
 
     @classmethod
     async def get_result_by_username(cls, username: str) -> ParserResult:
         return await ParserResult.filter(instagram_username=username).first()
-

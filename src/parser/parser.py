@@ -48,7 +48,7 @@ class Parser:
         # get stories info
         data = await client.get_account_stories_by_id(login.username, login.user_id)
         # update data in result table db
-        await ParserResultTableDBHandler.update_result(data)
+        await ParserResultTableDBHandler.add_result(data)
         custom_logger.info(f'{data.username} login successfully updated!')
         # sleep for n-sec
         await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX))
