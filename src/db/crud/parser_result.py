@@ -1,5 +1,3 @@
-import tortoise
-
 from db.models import ParserResult
 from parser.clients.models import InstagramClientAnswer
 
