@@ -76,7 +76,7 @@ class NoProxyDBError(BaseParserException):
 
 
 class NotEnoughProxyDBError(BaseParserException):
-    def __init__(self, proxy_count: int, account_count: int):
+    def __init__(self, account_count: int, proxy_count: int):
         self.proxy_count = proxy_count
         self.account_count = account_count
 
