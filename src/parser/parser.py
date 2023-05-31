@@ -26,7 +26,7 @@ class Parser:
             if not proxies:
                 raise NoProxyDBError(ProxyTypes.parser)
             if len(new_accounts) // len(proxies) > 10:
-                raise NotEnoughProxyDBError()
+                raise NotEnoughProxyDBError(len(new_accounts), len(proxies))
             for i, acc in enumerate(new_accounts):
                 acc.proxy = proxies[i % len(proxies)].proxy
             await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)
