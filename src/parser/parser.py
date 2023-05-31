@@ -12,32 +12,37 @@ from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.utils import errors_handler_decorator
-from parser.exceptions import NoProxyDBError, NotEnoughProxyDBError
+from parser.exceptions import NoProxyDBError, NotEnoughProxyDBError, NoAccountsDBError
 
 
 class Parser:
     @errors_handler_decorator
     async def on_start(self):
-        custom_logger.info('Start parser ...')
-        custom_logger.info('Prepare database ...')
-        # get new accs and union with proxies
-        if new_accounts := await InstagramAccountsTableDBHandler.get_accounts_without_proxy():
-            proxies = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.parser)
-            if not proxies:
-                raise NoProxyDBError(ProxyTypes.parser)
-            if len(new_accounts) // len(proxies) > 10:
-                raise NotEnoughProxyDBError(len(new_accounts), len(proxies))
-            for i, acc in enumerate(new_accounts):
-                acc.proxy = proxies[i % len(proxies)].proxy
-            await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)
-        # update usage rates for all accs
-        await InstagramAccountsTableDBHandler.update_accounts_daily_usage_rate()
-        custom_logger.info('Parser is ready ...')
-        # return logins for update
-        logins_for_update = await InstagramLoginsTableDBHandler.get_login_all()
-        custom_logger.info(f'{len(logins_for_update)} logins for update found!')
-
-        return logins_for_update
+        while True:
+            try:
+                custom_logger.info('Start parser ...')
+                custom_logger.info('Prepare database ...')
+                # get new accs and union with proxies
+                if new_accounts := await InstagramAccountsTableDBHandler.get_accounts_without_proxy():
+                    proxies = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.parser)
+                    if not proxies:
+                        raise NoProxyDBError(ProxyTypes.parser)
+                    if len(new_accounts) // len(proxies) > 10:
+                        raise NotEnoughProxyDBError(len(new_accounts), len(proxies))
+                    for i, acc in enumerate(new_accounts):
+                        acc.proxy = proxies[i % len(proxies)].proxy
+                    await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)
+                # update usage rates for all accs
+                await InstagramAccountsTableDBHandler.update_accounts_daily_usage_rate()
+                custom_logger.info('Parser is ready ...')
+                # return logins for update
+                logins_for_update = await InstagramLoginsTableDBHandler.get_login_all()
+                custom_logger.info(f'{len(logins_for_update)} logins for update found!')
+                return logins_for_update
+            except (NoAccountsDBError, NoProxyDBError, NotEnoughProxyDBError) as ex:
+                custom_logger.warning(ex)
+                custom_logger.warning('Sleep for 15 min ...')
+                await asyncio.sleep(900)
 
     @errors_handler_decorator
     async def collect_instagram_story_data(self, login: InstagramLogins) -> None:
