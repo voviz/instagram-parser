@@ -51,7 +51,7 @@ class AccountTooManyRequests(ThirdPartyApiException):
 
     def __str__(self):
         return 'Too many requests from account: {0} ... Sleep for {1} secs ...'.format(self.account.credentials,
-                                                                                       settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
+                                                                                       settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
 
 
 class InvalidProxyFormatError(BaseParserException):

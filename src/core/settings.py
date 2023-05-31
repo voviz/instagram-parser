@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     # parser settings
     ACCOUNT_DAILY_USAGE_RATE: int = Field(default=150, env='ACCOUNT_DAILY_USAGE_RATE')
     PROCESS_COUNT: int = Field(default=multiprocessing.cpu_count(), env='PROCESS_COUNT')
-    UPDATE_PROCESS_DELAY_MAX: int = Field(default=2, env='UPDATE_PROCESS_DELAY_MAX')
-    ACCOUNT_TOO_MANY_REQUESTS_SLEEP: int = Field(default=2, env='ACCOUNT_TOO_MANY_REQUESTS_SLEEP')
+    UPDATE_PROCESS_DELAY_MAX_SEC: int = Field(default=2, env='UPDATE_PROCESS_DELAY_MAX_SEC')
+    ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC: int = Field(default=2, env='ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC')
+    PARSER_BETWEEN_RESTARTS_SLEEP_SEC: int = Field(default=1900, env='PARSER_BETWEEN_RESTARTS_SLEEP_SEC')
 
     class Config:
         env_prefix = ""

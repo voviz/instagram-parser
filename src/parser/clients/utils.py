@@ -40,7 +40,7 @@ def errors_handler_decorator(func):
             custom_logger.warning(ex)
         except AccountTooManyRequests as ex:
             custom_logger.warning(ex)
-            await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP)
+            await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
         except (NoAccountsDBError, NoProxyDBError) as ex:
             custom_logger.warning(ex)
             await asyncio.sleep(1800)

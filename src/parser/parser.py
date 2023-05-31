@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import concurrent.futures
 import random
+import time
 
 from core.logs import custom_logger
 from core.settings import settings, Settings
@@ -58,7 +59,7 @@ class Parser:
         await ParserResultTableDBHandler.add_result(data)
         custom_logger.info(f'{data.username} login successfully updated!')
         # sleep for n-sec
-        await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX))
+        await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX_SEC))
 
     def sync_wrapper(self, login: InstagramLogins) -> None:
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -99,19 +100,26 @@ class Parser:
             if args.account_too_many_requests_sleep:
                 settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP = args.account_too_many_requests_sleep
 
-            # on_start run
-            if logins_for_update := asyncio.run(self.on_start()):
-                futures = []
-                with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
-                    for login in logins_for_update:
-                        new_future = executor.submit(
-                            self.sync_wrapper,
-                            login
-                        )
-                        futures.append(new_future)
-                concurrent.futures.wait(futures)
-            else:
-                custom_logger.warning('No logins for update found!')
-                custom_logger.warning('Check your db and credentials in .env file!')
+            while True:
+                # on_start run
+                if logins_for_update := asyncio.run(self.on_start()):
+                    futures = []
+                    with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
+                        for login in logins_for_update:
+                            new_future = executor.submit(
+                                self.sync_wrapper,
+                                login
+                            )
+                            futures.append(new_future)
+                    concurrent.futures.wait(futures)
+                    custom_logger.info(f'All {len(logins_for_update)} logins updated!')
+                    custom_logger.info(f'Automatic restart of the parser after '
+                                       f'{settings.PARSER_BETWEEN_RESTARTS_SLEEP_SEC} secs ...')
+                    time.sleep(settings.PARSER_BETWEEN_RESTARTS_SLEEP_SEC)
+                else:
+                    custom_logger.warning('No logins for update found!')
+                    custom_logger.warning('Check your db and credentials in .env file!')
+                    custom_logger.warning('Restart after 15 min ...')
+                    time.sleep(900)
         except BaseException as ex:
             custom_logger.error(ex)
