@@ -83,8 +83,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             stories_list = []
             # check if any reels exist
             if raw_data['reels']:
-                # make reverse iteration in order to find the last story with link
-                for i in reversed(raw_data['reels'][str(user_id)]['items']):
+                for i in raw_data['reels'][str(user_id)]['items']:
                     if i['media_type'] == ThirdPartyAPIMediaType.photo:
                         story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo,
                                                url=i['image_versions2']['candidates'][0]['url'],
@@ -135,7 +134,6 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                     if story.sku:
                         stories_list.append(story)
-                        break
 
             return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
                                          username=username,
