@@ -55,6 +55,15 @@ class AccountTooManyRequests(ThirdPartyApiException):
                                                                                        settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
 
 
+class ProxyTooManyRequests(ThirdPartyApiException):
+    def __init__(self, proxy: str):
+        self.proxy = proxy
+
+    def __str__(self):
+        return 'Too many requests from proxy: {0} ... Sleep for {1} secs ...'.format(self.proxy,
+                                                                                     settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
+
+
 class InvalidProxyFormatError(BaseParserException):
     def __init__(self, proxy: str):
         self.proxy = proxy

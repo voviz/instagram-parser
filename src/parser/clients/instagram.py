@@ -7,7 +7,6 @@ from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
-from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
 from parser.clients.base import BaseThirdPartyAPIClient
@@ -16,7 +15,7 @@ from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, In
 from parser.clients.ozon import OzonClient
 from parser.clients.wildberries import WildberrisClient
 from parser.exceptions import AccountConfirmationRequired, \
-    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError
+    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError, ProxyTooManyRequests
 from parser.proxy_handler import ProxyHandler
 
 
@@ -66,6 +65,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise AccountTooManyRequests(account=account)
                 if ex.status == 404:
                     raise LoginNotExist(account_name=username)
+                if ex.status == 500:
+                    raise ProxyTooManyRequests(proxy=account.proxy)
             raise ex
 
     async def get_account_stories_by_id(self, username: str, user_id: int) -> InstagramClientAnswer:
@@ -159,6 +160,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise AccountTooManyRequests(account=account)
                 if ex.status == 404:
                     raise LoginNotExist(account_name=username)
+                if ex.status == 500:
+                    raise ProxyTooManyRequests(proxy=account.proxy)
             raise ex
 
     async def _resolve_stories_link(self, url: str) -> str:
