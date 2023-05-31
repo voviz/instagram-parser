@@ -21,5 +21,5 @@ class InstagramLoginsTableDBHandler:
 
     @classmethod
     async def mark_as_not_exists(cls, username: str) -> None:
-        await InstagramLogins.filter(username=username).all().update(is_exists=False,
-                                                                     updated_at=tortoise.timezone.now())
+        await InstagramLogins.filter(username=username).update(is_exists=False,
+                                                               updated_at=tortoise.timezone.now())
