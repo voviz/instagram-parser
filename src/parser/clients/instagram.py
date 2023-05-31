@@ -164,7 +164,6 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _resolve_stories_link(self, url: str) -> str:
         # get proxy
-        await DatabaseConnector().async_init()
         ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
         if not ozon_proxy:
             raise NoProxyDBError(ProxyTypes.ozon)
