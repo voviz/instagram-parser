@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import aiohttp
 from aiohttp import TooManyRedirects
@@ -162,11 +163,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _resolve_stories_link(self, url: str) -> str:
         # get proxy
-        ozon_proxy = await ProxiesTableDBHandler.get_ozon_proxy()
-        if not ozon_proxy:
+        ozon_proxy_list = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.ozon)
+        if not ozon_proxy_list:
             raise NoProxyDBError(ProxyTypes.ozon)
+        proxy = ozon_proxy_list[random.randint(0, len(ozon_proxy_list) - 1)].proxy
         # init client
-        with SB(uc=True, headless2=True, proxy=ProxyHandler.convert_to_seleniumbase_format(ozon_proxy.proxy)) as sb:
+        with SB(uc=True, headless2=True, proxy=ProxyHandler.convert_to_seleniumbase_format(proxy)) as sb:
             try:
                 sb.open(url)
                 # case: redirect button on page

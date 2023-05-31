@@ -12,7 +12,7 @@ from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.utils import errors_handler_decorator
-from parser.exceptions import NoProxyDBError
+from parser.exceptions import NoProxyDBError, NotEnoughProxyDBError
 
 
 class Parser:
@@ -22,9 +22,11 @@ class Parser:
         custom_logger.info('Prepare database ...')
         # get new accs and union with proxies
         if new_accounts := await InstagramAccountsTableDBHandler.get_accounts_without_proxy():
-            proxies = await ProxiesTableDBHandler.get_parser_proxies_all()
+            proxies = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.parser)
             if not proxies:
                 raise NoProxyDBError(ProxyTypes.parser)
+            if len(new_accounts) // len(proxies) > 10:
+                raise NotEnoughProxyDBError()
             for i, acc in enumerate(new_accounts):
                 acc.proxy = proxies[i % len(proxies)].proxy
             await InstagramAccountsTableDBHandler.set_proxy_for_accounts(new_accounts)

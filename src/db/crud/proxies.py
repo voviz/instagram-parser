@@ -10,9 +10,5 @@ class ProxyTypes(StrEnum):
 
 class ProxiesTableDBHandler:
     @classmethod
-    async def get_parser_proxies_all(cls) -> list[Proxies]:
-        return await Proxies.filter(type=ProxyTypes.parser.value).all()
-
-    @classmethod
-    async def get_ozon_proxy(cls) -> Proxies:
-        return await Proxies.filter(type=ProxyTypes.ozon.value).first()
+    async def get_proxy_all(cls, proxy_type: ProxyTypes) -> list[Proxies]:
+        return await Proxies.filter(type=proxy_type.value).all()

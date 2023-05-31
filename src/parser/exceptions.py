@@ -73,3 +73,13 @@ class NoProxyDBError(BaseParserException):
 
     def __str__(self):
         return f'No proxies of type {self.type} to work with in db ...'
+
+
+class NotEnoughProxyDBError(BaseParserException):
+    def __init__(self, proxy_count: int, account_count: int):
+        self.proxy_count = proxy_count
+        self.account_count = account_count
+
+    def __str__(self):
+        return f'Not enough proxies in db ....\n' \
+               f'You have to add {self.account_count // 10 - self.proxy_count} more proxies'
