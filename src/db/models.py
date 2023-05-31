@@ -45,7 +45,7 @@ class ParserResult(Model, IdMixin):
     sku = fields.BigIntField(null=True)
     ad_type = fields.CharField(max_length=255, null=True)
     is_checked = fields.BooleanField(default=False)
-    created_at = fields.DatetimeField(null=True)
+    created_at = fields.DatetimeField(auto_now_add=True)
 
     class Meta:
         table = 'parser_result'
