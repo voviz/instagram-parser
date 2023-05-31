@@ -1,6 +1,7 @@
 from typing import Any
 
 from core.settings import settings
+from db.crud.proxies import ProxyTypes
 from db.models import InstagramAccounts
 
 
@@ -68,11 +69,14 @@ class NoAccountsDBError(BaseParserException):
 
 
 class NoProxyDBError(BaseParserException):
-    def __init__(self, type: str):
+    def __init__(self, type: ProxyTypes):
         self.type = type
 
     def __str__(self):
-        return f'No proxies of type {self.type} to work with in db ...'
+        if self.type == ProxyTypes.parser:
+            return f'No proxies of type {self.type}! Cannot add new accounts in db ...'
+        else:
+            return f'No proxies of type {self.type} to work with in db ...'
 
 
 class NotEnoughProxyDBError(BaseParserException):
@@ -82,4 +86,5 @@ class NotEnoughProxyDBError(BaseParserException):
 
     def __str__(self):
         return f'Not enough proxies in db ....\n' \
+               f'Cannot add new accounts in db ...' \
                f'You have to add {self.account_count // 10 - self.proxy_count} more proxies'
