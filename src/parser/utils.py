@@ -4,7 +4,7 @@ from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from parser.exceptions import NoProxyDBError, NotEnoughProxyDBError
 
 
-def add_new_accounts() -> bool:
+async def add_new_accounts() -> bool:
     # get new accs and union with proxies
     if new_accounts := await InstagramAccountsTableDBHandler.get_accounts_without_proxy():
         proxies = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.parser)

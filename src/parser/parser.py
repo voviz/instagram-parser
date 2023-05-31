@@ -24,7 +24,7 @@ class Parser:
                 custom_logger.info('Start parser ...')
                 custom_logger.info('Prepare database ...')
                 # get new accs and union with proxies
-                add_new_accounts()
+                await add_new_accounts()
                 # update usage rates for all accs
                 await InstagramAccountsTableDBHandler.update_accounts_daily_usage_rate()
                 custom_logger.info('Parser is ready ...')

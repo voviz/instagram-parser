@@ -46,7 +46,7 @@ def errors_handler_decorator(func):
         except ThirdPartyApiException as ex:
             custom_logger.error(ex)
         except NoAccountsDBError as ex:
-            if not add_new_accounts():
+            if not await add_new_accounts():
                 custom_logger.warning(ex)
                 custom_logger.warning('Restart after 15 min ...')
                 await asyncio.sleep(900)
