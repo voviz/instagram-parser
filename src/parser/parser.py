@@ -41,7 +41,7 @@ class Parser:
                 return logins_for_update
             except (NoAccountsDBError, NoProxyDBError, NotEnoughProxyDBError) as ex:
                 custom_logger.warning(ex)
-                custom_logger.warning('Sleep for 15 min ...')
+                custom_logger.warning('Restart after 15 min ...')
                 await asyncio.sleep(900)
 
     @errors_handler_decorator
