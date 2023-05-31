@@ -46,7 +46,7 @@ class BaseThirdPartyAPIClient:
     async def _clean_response(self, res, is_json: bool) -> str:
         try:
             if res.status != 200:
-                if is_json:
+                if res.content_type == 'application/json':
                     answer = await res.json()
                 else:
                     answer = await res.text()
