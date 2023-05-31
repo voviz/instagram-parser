@@ -8,10 +8,8 @@ from core.settings import settings
 from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
-from db.crud.proxies import ProxyTypes
 from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
-    AccountTooManyRequests, NoAccountsDBError, NoProxyDBError, ThirdPartyApiException, NotEnoughProxyDBError
-from parser.utils import add_new_accounts
+    AccountTooManyRequests, NoProxyDBError, ThirdPartyApiException, NotEnoughProxyDBError
 
 
 def errors_handler_decorator(func):
@@ -45,16 +43,14 @@ def errors_handler_decorator(func):
             await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
         except ThirdPartyApiException as ex:
             custom_logger.error(ex)
-        except NoAccountsDBError as ex:
-            if not await add_new_accounts():
-                custom_logger.warning(ex)
-                custom_logger.warning('Restart after 15 min ...')
-                await asyncio.sleep(900)
         except NoProxyDBError as ex:
             custom_logger.warning(ex)
-            if ex.type == ProxyTypes.ozon:
-                custom_logger.warning('Restart after 15 min ...')
-                await asyncio.sleep(900)
+            custom_logger.warning('Restart after 15 min ...')
+            await asyncio.sleep(900)
+        except NotEnoughProxyDBError as ex:
+            custom_logger.warning(ex)
+            custom_logger.warning('Restart after 15 min ...')
+            await asyncio.sleep(900)
         except TimeoutException as ex:
             custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
         except WebDriverException as ex:

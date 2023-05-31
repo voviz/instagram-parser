@@ -39,19 +39,27 @@ class Parser:
 
     @errors_handler_decorator
     async def collect_instagram_story_data(self, login: InstagramLogins) -> None:
-        client = InstagramClient()
-        # get login base info (user_id, is_exists, followers)
-        if not login.user_id:
-            login = await client.get_account_info_by_user_name(login.username)
-            # update data in db
-            await InstagramLoginsTableDBHandler.update_login(login)
-        # get stories info
-        data = await client.get_account_stories_by_id(login.username, login.user_id)
-        # update data in result table db
-        await ParserResultTableDBHandler.add_result(data)
-        custom_logger.info(f'{data.username} login successfully updated!')
-        # sleep for n-sec
-        await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX_SEC))
+        while True:
+            try:
+                client = InstagramClient()
+                # get login base info (user_id, is_exists, followers)
+                if not login.user_id:
+                    login = await client.get_account_info_by_user_name(login.username)
+                    # update data in db
+                    await InstagramLoginsTableDBHandler.update_login(login)
+                # get stories info
+                data = await client.get_account_stories_by_id(login.username, login.user_id)
+                # update data in result table db
+                await ParserResultTableDBHandler.add_result(data)
+                custom_logger.info(f'{data.username} login successfully updated!')
+                # sleep for n-sec
+                await asyncio.sleep(random.randint(0, settings.UPDATE_PROCESS_DELAY_MAX_SEC))
+                break
+            except NoAccountsDBError as ex:
+                custom_logger.warning(ex)
+                if not await add_new_accounts():
+                    custom_logger.warning('Restart after 15 min ...')
+                    await asyncio.sleep(900)
 
     def sync_wrapper(self, login: InstagramLogins) -> None:
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
