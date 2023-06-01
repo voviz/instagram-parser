@@ -164,6 +164,104 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise ProxyTooManyRequests(proxy=account.proxy)
             raise ex
 
+    async def get_account_stories_by_id_v2(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:
+        try:
+            # get account credentials from db
+            account = await InstagramAccountsTableDBHandler.get_account()
+            querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
+            raw_data = await self.request(
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                edge=f'feed/reels_media?{querystring}',
+                is_json=True,
+                cookie=account.cookies,
+                user_agent=account.user_agent,
+                proxy=account.proxy,
+            )
+            stories_by_accounts = []
+            if raw_data['reels']:
+                for id in raw_data['reels']:
+                    stories_list = []
+                    username = raw_data['reels'][id]['user']['username']
+                    for item in raw_data['reels'][id]['items']:
+                        if item['media_type'] == ThirdPartyAPIMediaType.photo:
+                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo,
+                                                   url=item['image_versions2']['candidates'][0]['url'],
+                                                   created_at=item['taken_at'])
+                        if item['media_type'] == ThirdPartyAPIMediaType.video:
+                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.video,
+                                                   url=item['video_versions'][0]['url'],
+                                                   created_at=item['taken_at'])
+
+                        # check story for sku in caption
+                        if item.get('accessibility_caption'):
+                            for kw in ('артикул', 'articul', 'sku'):
+                                if kw in item['accessibility_caption'].lower():
+                                    raw_sku = item['accessibility_caption'].lower().split(kw)[1]
+                                    sku = ''.join([_ for _ in raw_sku if item.isdigit()])
+                                    story.sku = sku
+                                    for wb in ('wb', 'вб', 'wildberries', 'вайл'):
+                                        if wb in item['accessibility_caption'].lower():
+                                            story.marketplace = Marketplaces.wildberries
+                                    for oz in ('ozon', 'озон'):
+                                        if oz in item['accessibility_caption'].lower():
+                                            story.marketplace = Marketplaces.ozon
+                                    story.ad_type = AdType.text
+
+                            # check marketplace if it is not defined yet
+                            if story.sku and not story.marketplace:
+                                result = await asyncio.gather(
+                                    OzonClient().check_sku(sku),
+                                    WildberrisClient().check_sku(sku),
+                                )
+                                if result[0]:
+                                    story.marketplace = Marketplaces.ozon
+                                elif result[1]:
+                                    story.marketplace = Marketplaces.wildberries
+
+                        # check story for link
+                        if not story.sku and item.get('story_link_stickers'):
+                            url = item['story_link_stickers'][0]['story_link']['url']
+                            if 'ozon' in url or 'wildberries' in url:
+                                story.url = await self._resolve_stories_link(url)
+                                if 'ozon' in story.url:
+                                    story.marketplace = Marketplaces.ozon
+                                    story.sku = OzonClient.extract_sku_from_url(story.url)
+                                elif 'wildberries' in story.url:
+                                    story.marketplace = Marketplaces.wildberries
+                                    story.sku = WildberrisClient.extract_sku_from_url(story.url)
+                                story.ad_type = AdType.link
+
+                        if story.sku:
+                            stories_list.append(story)
+
+                    stories_by_accounts.append(InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
+                                                                     username=username,
+                                                                     stories_list=stories_list))
+            return stories_by_accounts
+        except TooManyRedirects:
+            raise AccountInvalidCredentials(account=account)
+        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
+            ex.proxy = account.proxy
+            raise ex
+        except Exception as ex:
+            """
+            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
+            So Exception class is used
+            """
+            if ex.__dict__.get('status'):
+                if ex.status == 400:
+                    if ex.answer['message'] == 'useragent mismatch':
+                        raise AccountInvalidCredentials(account=account)
+                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
+                        raise AccountConfirmationRequired(account=account)
+                if ex.status == 401:
+                    raise AccountTooManyRequests(account=account)
+                if ex.status == 404:
+                    raise LoginNotExist(account_name=username)
+                if ex.status == 500:
+                    raise ProxyTooManyRequests(proxy=account.proxy)
+            raise ex
+
     async def _resolve_stories_link(self, url: str) -> str:
         # get proxy
         ozon_proxy_list = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.ozon)
