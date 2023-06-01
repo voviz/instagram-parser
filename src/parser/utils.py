@@ -18,3 +18,14 @@ async def add_new_accounts() -> bool:
         custom_logger.info('{} new accounts added!'.format(len(new_accounts)))
         return True
     return False
+
+
+def chunks(lst: list, n: int):
+    """
+    Yield successive n-sized chunks from lst.
+    @param lst: list of data
+    @param n: number of chunks to separate
+    @return: iterator
+    """
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]

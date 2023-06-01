@@ -13,6 +13,10 @@ class InstagramLoginsTableDBHandler:
                                                                               updated_at=tortoise.timezone.now())
 
     @classmethod
+    async def update_login_list(cls, login_list: list[InstagramLogins]) -> None:
+        await InstagramLogins.bulk_update(login_list, fields=['updated_at'])
+
+    @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:
         not_updated_logins = await InstagramLogins.filter(updated_at=None).all()
         updated_logins = await InstagramLogins.filter(is_exists=True).all().order_by('updated_at')
