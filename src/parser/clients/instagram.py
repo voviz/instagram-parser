@@ -227,6 +227,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     story.url = await self._resolve_stories_link(url)
                                 except Exception as ex:
                                     custom_logger.error(ex)
+                                    custom_logger.error('url: ' + url)
                                     continue
                                 if 'ozon' in story.url:
                                     story.marketplace = Marketplaces.ozon
