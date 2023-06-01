@@ -31,7 +31,7 @@ class InstagramAccountsTableDBHandler:
         # to add randomness to db
         account = account_list[random.randint(0, len(account_list) - 1)]
         # check account daly usage
-        if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).seconds // 3600 >= 24:
+        if account.last_used_at and (tortoise.timezone.now() - account.last_used_at).days >= 1:
             await InstagramAccounts.filter(credentials=account.credentials).update(last_used_at=tortoise.timezone.now(),
                                                                                    daily_usage_rate=0)
         else:
@@ -47,10 +47,12 @@ class InstagramAccountsTableDBHandler:
 
     @classmethod
     async def update_accounts_daily_usage_rate(cls) -> None:
-        accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all()
+        accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all().order_by('last_used_at')
         for acc in accounts:
-            if acc.last_used_at and (tortoise.timezone.now() - acc.last_used_at).seconds // 3600 >= 24:
+            if (tortoise.timezone.now() - acc.last_used_at).days >= 1:
                 await InstagramAccounts.filter(credentials=acc.credentials).update(daily_usage_rate=0)
+                continue
+            return
 
     @classmethod
     async def set_proxy_for_accounts(cls, accounts: list[InstagramAccounts]) -> None:
