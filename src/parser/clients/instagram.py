@@ -7,6 +7,7 @@ from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
+from core.logs import custom_logger
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
 from parser.clients.base import BaseThirdPartyAPIClient
@@ -222,7 +223,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         if not story.sku and item.get('story_link_stickers'):
                             url = item['story_link_stickers'][0]['story_link']['url']
                             if 'ozon' in url or 'wildberries' in url:
-                                story.url = await self._resolve_stories_link(url)
+                                try:
+                                    story.url = await self._resolve_stories_link(url)
+                                except Exception as ex:
+                                    custom_logger.error(ex)
+                                    continue
                                 if 'ozon' in story.url:
                                     story.marketplace = Marketplaces.ozon
                                     story.sku = OzonClient.extract_sku_from_url(story.url)
