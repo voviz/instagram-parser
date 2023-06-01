@@ -51,8 +51,7 @@ class AccountTooManyRequests(ThirdPartyApiException):
         self.account = account
 
     def __str__(self):
-        return 'Too many requests from account: {0} ... Sleep for {1} secs ...'.format(self.account.credentials,
-                                                                                       settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
+        return 'Too many requests from account: {} ... Delete ...'.format(self.account.credentials)
 
 
 class ProxyTooManyRequests(ThirdPartyApiException):

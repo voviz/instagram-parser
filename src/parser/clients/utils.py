@@ -30,15 +30,15 @@ def errors_handler_decorator(func):
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
         except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
             custom_logger.error(f'Cannot connect via proxy: {ex.proxy}')
-        except (AccountInvalidCredentials, AccountConfirmationRequired) as ex:
+        except (AccountInvalidCredentials, AccountConfirmationRequired, AccountTooManyRequests) as ex:
+            custom_logger.warning(ex)
             # delete acc from db
             await InstagramAccountsTableDBHandler.delete_account(ex.account)
-            custom_logger.warning(ex)
         except LoginNotExist as ex:
             # mark login as not existed
             await InstagramLoginsTableDBHandler.mark_as_not_exists(ex.account_name)
             custom_logger.warning(ex)
-        except (AccountTooManyRequests, ProxyTooManyRequests) as ex:
+        except ProxyTooManyRequests as ex:
             custom_logger.warning(ex)
             await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
         except ThirdPartyApiException as ex:
