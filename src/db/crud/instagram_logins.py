@@ -14,6 +14,9 @@ class InstagramLoginsTableDBHandler:
 
     @classmethod
     async def update_login_list(cls, login_list: list[InstagramLogins]) -> None:
+        # update 'updated_at' field
+        for login in login_list:
+            login.updated_at = tortoise.timezone.now()
         await InstagramLogins.bulk_update(login_list, fields=['updated_at'])
 
     @classmethod
