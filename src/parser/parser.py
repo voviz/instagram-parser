@@ -3,6 +3,7 @@ import asyncio
 import concurrent.futures
 import random
 import time
+
 from aiostream import stream, pipe
 
 from core.logs import custom_logger
@@ -14,7 +15,7 @@ from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.models import InstagramClientAnswer
 from parser.clients.utils import errors_handler_decorator
-from parser.exceptions import NoAccountsDBError, NoProxyDBError, NotEnoughProxyDBError
+from parser.exceptions import NoAccountsDBError, NoProxyDBError
 from parser.utils import add_new_accounts, chunks, check_driver_installation
 
 
@@ -36,7 +37,7 @@ class Parser:
                 logins_for_update = await InstagramLoginsTableDBHandler.get_login_all()
                 custom_logger.info(f'{len(logins_for_update)} logins for update found!')
                 return logins_for_update
-            except (NoProxyDBError, NotEnoughProxyDBError) as ex:
+            except NoProxyDBError as ex:
                 custom_logger.warning(ex)
                 custom_logger.warning('Restart after 15 min ...')
                 await asyncio.sleep(900)

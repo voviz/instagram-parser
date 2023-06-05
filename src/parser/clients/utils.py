@@ -9,7 +9,7 @@ from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
-    AccountTooManyRequests, NoProxyDBError, ThirdPartyApiException, NotEnoughProxyDBError, ProxyTooManyRequests
+    AccountTooManyRequests, NoProxyDBError, ThirdPartyApiException, ProxyTooManyRequests
 
 
 def errors_handler_decorator(func):
@@ -44,10 +44,6 @@ def errors_handler_decorator(func):
         except ThirdPartyApiException as ex:
             custom_logger.error(ex)
         except NoProxyDBError as ex:
-            custom_logger.warning(ex)
-            custom_logger.warning('Restart after 15 min ...')
-            await asyncio.sleep(900)
-        except NotEnoughProxyDBError as ex:
             custom_logger.warning(ex)
             custom_logger.warning('Restart after 15 min ...')
             await asyncio.sleep(900)
