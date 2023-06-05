@@ -2,6 +2,7 @@ from core.logs import custom_logger
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
 from parser.exceptions import NoProxyDBError, NotEnoughProxyDBError
+from seleniumbase import get_driver
 
 
 async def add_new_accounts() -> bool:
@@ -18,6 +19,12 @@ async def add_new_accounts() -> bool:
         custom_logger.info('{} new accounts added!'.format(len(new_accounts)))
         return True
     return False
+
+
+def check_driver_installation() -> None:
+    driver = get_driver("chrome", headless=True)
+    driver.get("https://www.google.com/chrome")
+    driver.quit()
 
 
 def chunks(lst: list, n: int):
