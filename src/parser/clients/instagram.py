@@ -226,7 +226,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 try:
                                     story.url = await self._resolve_stories_link(url)
                                 except Exception as ex:
-                                    custom_logger.error(ex)
+                                    custom_logger.error(f'{type(ex)}: {ex}')
                                     custom_logger.error('url: ' + url)
                                     continue
                                 if 'ozon' in story.url:
@@ -288,7 +288,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 if 'ozon' in sb.get_current_url():
                     sb.wait_for_element_present('__ozon', by=By.ID, timeout=7)
                 else:
-                    sb.wait_for_element_present('product-page', by=By.CLASS_NAME, timeout=7)
+                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=7)
                 link = sb.get_current_url()
                 return link
             except NoSuchElementException as ex:
