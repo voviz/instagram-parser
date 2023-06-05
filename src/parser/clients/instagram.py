@@ -280,15 +280,15 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 sb.open(url)
                 # case: redirect button on page
                 try:
-                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=7)
+                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=10)
                     if redirect_button.text == 'Перейти по ссылке':
                         redirect_button.click()
                 except NoSuchElementException:
                     pass
                 if 'ozon' in sb.get_current_url():
-                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=7)
+                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=10)
                 else:
-                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=7)
+                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=10)
                 link = sb.get_current_url()
                 return link
             except NoSuchElementException as ex:
