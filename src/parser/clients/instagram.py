@@ -3,7 +3,7 @@ import random
 
 import aiohttp
 from aiohttp import TooManyRedirects
-from selenium.common import NoSuchElementException
+from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
@@ -225,6 +225,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                             if 'ozon' in url or 'wildberries' in url:
                                 try:
                                     story.url = await self._resolve_stories_link(url)
+                                except WebDriverException:
+                                    continue
                                 except Exception as ex:
                                     custom_logger.error(f'{type(ex)}: {ex}')
                                     custom_logger.error('url: ' + url)
@@ -278,19 +280,24 @@ class InstagramClient(BaseThirdPartyAPIClient):
         with SB(uc=True, headless2=True, proxy=ProxyHandler.convert_to_seleniumbase_format(proxy)) as sb:
             try:
                 sb.open(url)
-                # case: redirect button on page
-                try:
-                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=10)
+                # case: instagram redirect page
+                if sb.is_text_visible('Вы покидаете Instagram'):
+                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=5)
                     if redirect_button.text == 'Перейти по ссылке':
                         redirect_button.click()
-                except NoSuchElementException:
-                    pass
-                if 'ozon' in sb.get_current_url():
-                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=10)
+                # define url
+                if 'ozon.ru' in sb.get_current_url():
+                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+                elif 'wildberries.ru' in sb.get_current_url():
+                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
                 else:
-                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=10)
-                link = sb.get_current_url()
-                return link
+                    # case: redirect landing page
+                    # check all links on the page
+                    for l in sb.get_unique_links():
+                        if any([WildberrisClient.extract_sku_from_url(l),
+                                OzonClient.extract_sku_from_url(l)]):
+                            return l
+                return sb.get_current_url()
             except NoSuchElementException as ex:
                 # case: when timout occured after redirect
                 if any([WildberrisClient.extract_sku_from_url(sb.get_current_url()),
