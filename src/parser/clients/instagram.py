@@ -225,6 +225,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                             if 'ozon' in url or 'wildberries' in url:
                                 try:
                                     story.url = await self._resolve_stories_link(url)
+                                except NoProxyDBError as ex:
+                                    raise ex
                                 except WebDriverException:
                                     continue
                                 except Exception as ex:
