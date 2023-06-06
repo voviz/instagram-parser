@@ -230,8 +230,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 except WebDriverException:
                                     continue
                                 except Exception as ex:
-                                    custom_logger.error(f'{type(ex)}: {ex}')
-                                    custom_logger.error('url: ' + url)
+                                    if not str(ex) == 'Retry of page load timed out after 120.0 seconds!':
+                                        custom_logger.error(f'{type(ex)}: {ex}')
+                                        custom_logger.error('url: ' + url)
                                     continue
                                 if 'ozon' in story.url:
                                     story.marketplace = Marketplaces.ozon
