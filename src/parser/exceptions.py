@@ -1,6 +1,5 @@
 from typing import Any
 
-from core.settings import settings
 from db.crud.proxies import ProxyTypes
 from db.models import InstagramAccounts
 
@@ -59,8 +58,7 @@ class ProxyTooManyRequests(ThirdPartyApiException):
         self.proxy = proxy
 
     def __str__(self):
-        return 'Too many requests from proxy: {0} ... Sleep for {1} secs ...'.format(self.proxy,
-                                                                                     settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
+        return 'Too many requests from proxy: {} ...'.format(self.proxy)
 
 
 class InvalidProxyFormatError(BaseParserException):
