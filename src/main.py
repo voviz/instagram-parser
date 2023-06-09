@@ -34,4 +34,4 @@ if __name__ == '__main__':
                 custom_logger.warning('Restart after 15 min ...')
                 time.sleep(900)
     except BaseException as ex:
-        custom_logger.error(ex)
+        custom_logger.critical(ex)
