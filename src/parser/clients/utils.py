@@ -4,7 +4,6 @@ import aiohttp
 from selenium.common import WebDriverException, TimeoutException
 
 from core.logs import custom_logger
-from core.settings import settings
 from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
@@ -40,7 +39,6 @@ def errors_handler_decorator(func):
             custom_logger.warning(ex)
         except ProxyTooManyRequests as ex:
             custom_logger.warning(ex)
-            await asyncio.sleep(settings.ACCOUNT_TOO_MANY_REQUESTS_SLEEP_SEC)
         except ThirdPartyApiException as ex:
             custom_logger.error(ex)
         except NoProxyDBError as ex:
