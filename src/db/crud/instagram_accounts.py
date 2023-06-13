@@ -47,12 +47,14 @@ class InstagramAccountsTableDBHandler:
 
     @classmethod
     async def update_accounts_daily_usage_rate(cls) -> None:
-        accounts = await InstagramAccounts.filter(~Q(last_used_at=None)).all().order_by('last_used_at')
+        accounts = await InstagramAccounts.all().order_by('last_used_at')
         for acc in accounts:
-            if (tortoise.timezone.now() - acc.last_used_at).days >= 1:
-                await InstagramAccounts.filter(credentials=acc.credentials).update(daily_usage_rate=0)
-                continue
-            return
+            if acc.last_used_at:
+                if (tortoise.timezone.now() - acc.last_used_at).days >= 1:
+                    await InstagramAccounts.filter(credentials=acc.credentials).update(daily_usage_rate=0)
+            else:
+                if acc.daily_usage_rate > 0:
+                    await InstagramAccounts.filter(credentials=acc.credentials).update(daily_usage_rate=0)
 
     @classmethod
     async def set_proxy_for_accounts(cls, accounts: list[InstagramAccounts]) -> None:
