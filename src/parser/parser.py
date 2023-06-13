@@ -13,18 +13,16 @@ from parser.clients.instagram import InstagramClient
 from parser.clients.models import InstagramClientAnswer
 from parser.clients.utils import errors_handler_decorator
 from parser.exceptions import NoAccountsDBError, NoProxyDBError
-from parser.utils import add_new_accounts, check_driver_installation
+from parser.utils import add_new_accounts
 
 
 class Parser:
     @errors_handler_decorator
-    async def on_start(self):
+    async def on_start(self) -> list[InstagramLogins]:
         while True:
             try:
                 custom_logger.info('Start parser ...')
                 custom_logger.info('Prepare database ...')
-                # check webdriver installation
-                check_driver_installation()
                 # get new accs and union with proxies
                 await add_new_accounts()
                 # update usage rates for all accs

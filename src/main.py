@@ -5,10 +5,13 @@ import time
 from core.logs import custom_logger
 from core.settings import settings
 from parser.parser import Parser
-from parser.utils import chunks
+from parser.utils import chunks, check_driver_installation
 
 if __name__ == '__main__':
     try:
+        # check webdriver installation
+        check_driver_installation()
+        # get parser
         parser = Parser()
         while True:
             # on_start run
