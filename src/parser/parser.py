@@ -72,7 +72,7 @@ class Parser:
                     if login:
                         updated_logins.append(login)
             await InstagramLoginsTableDBHandler.update_login_list(updated_logins)
-            custom_logger.info(f'ids for {len(updated_logins)} updated!')
+            custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
         # close db connection
         await DatabaseConnector().close()
 
