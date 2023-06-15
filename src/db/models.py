@@ -49,3 +49,4 @@ class ParserResult(Model, IdMixin):
 
     class Meta:
         table = 'parser_result'
+        unique_together = ('story_publication_date', 'sku')
