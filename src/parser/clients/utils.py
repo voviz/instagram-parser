@@ -1,6 +1,8 @@
 import asyncio
+import random
 
 import aiohttp
+import asyncpg
 from selenium.common import WebDriverException, TimeoutException
 
 from core.logs import custom_logger
@@ -33,6 +35,9 @@ def errors_handler_decorator(func):
             custom_logger.warning(ex)
             # delete acc from db
             await InstagramAccountsTableDBHandler.delete_account(ex.account)
+        except asyncpg.exceptions.TooManyConnectionsError as ex:
+            custom_logger.warning(ex)
+            await asyncio.sleep(random.randint(1, 5))  # sleep for 1-5 seconds
         except LoginNotExist as ex:
             # mark login as not existed
             await InstagramLoginsTableDBHandler.mark_as_not_exists(ex.account_name)
