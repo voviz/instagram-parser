@@ -1,4 +1,7 @@
+from datetime import timedelta, datetime
+
 import tortoise
+from tortoise.expressions import Q
 
 from db.models import InstagramLogins
 from parser.clients.models import InstagramClientAnswer
@@ -22,7 +25,9 @@ class InstagramLoginsTableDBHandler:
     @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:
         not_updated_logins = await InstagramLogins.filter(updated_at=None).all()
-        updated_logins = await InstagramLogins.filter(is_exists=True).all().order_by('updated_at')
+        updated_logins = await InstagramLogins.filter(
+            Q(is_exists=True) & Q(updated_at__lt=tortoise.timezone.now() - timedelta(days=1))
+        ).all().order_by('updated_at')
         not_updated_logins.extend(updated_logins)
         return not_updated_logins
 
