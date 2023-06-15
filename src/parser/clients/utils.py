@@ -35,9 +35,6 @@ def errors_handler_decorator(func):
             custom_logger.warning(ex)
             # delete acc from db
             await InstagramAccountsTableDBHandler.delete_account(ex.account)
-        except (asyncpg.exceptions.TooManyConnectionsError,
-                asyncpg.exceptions._base.InterfaceError):
-            await asyncio.sleep(random.randint(5, 10))  # sleep for 5-10 seconds
         except LoginNotExist as ex:
             # mark login as not existed
             await InstagramLoginsTableDBHandler.mark_as_not_exists(ex.account_name)

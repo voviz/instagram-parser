@@ -12,7 +12,7 @@ from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.utils import errors_handler_decorator
 from parser.exceptions import NoAccountsDBError, NoProxyDBError
-from parser.utils import add_new_accounts
+from parser.utils import add_new_accounts, chunks
 
 
 class Parser:
@@ -56,14 +56,15 @@ class Parser:
                     await asyncio.sleep(900)
 
     async def get_login_ids_in_loop(self, logins_list: list[InstagramLogins]) -> None:
-        updated_logins = []
-        xs = stream.iterate(logins_list) | pipe.map(self.get_login_id, ordered=True, task_limit=6)
-        async with xs.stream() as streamer:
-            async for login in streamer:
-                if login:
-                    updated_logins.append(login)
-                    custom_logger.info(f'id of {login.username} login is successfully updated!')
-        await InstagramLoginsTableDBHandler.update_login_list(updated_logins)
+        for chunk in chunks(logins_list, 100):
+            updated_logins = []
+            xs = stream.iterate(chunk) | pipe.map(self.get_login_id, ordered=True, task_limit=5)
+            async with xs.stream() as streamer:
+                async for login in streamer:
+                    if login:
+                        updated_logins.append(login)
+                        custom_logger.info(f'id of {login.username} login is successfully updated!')
+            await InstagramLoginsTableDBHandler.update_login_list(updated_logins)
 
     @errors_handler_decorator
     async def collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
