@@ -63,8 +63,8 @@ class Parser:
                 async for login in streamer:
                     if login:
                         updated_logins.append(login)
-                        custom_logger.info(f'id of {login.username} login is successfully updated!')
             await InstagramLoginsTableDBHandler.update_login_list(updated_logins)
+            custom_logger.info(f'ids for {len(updated_logins)} updated!')
 
     @errors_handler_decorator
     async def collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
