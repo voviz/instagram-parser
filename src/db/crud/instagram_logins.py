@@ -20,7 +20,7 @@ class InstagramLoginsTableDBHandler:
         # update 'updated_at' field
         for login in login_list:
             login.updated_at = tortoise.timezone.now()
-        await InstagramLogins.bulk_update(login_list, fields=['updated_at'])
+        await InstagramLogins.bulk_update(login_list, fields=['updated_at', 'user_id', 'followers'])
 
     @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:
