@@ -25,7 +25,7 @@ class ParserResultTableDBHandler:
                                                     sku=story.sku,
                                                     ad_type=story.ad_type.value, ))
 
-        await ParserResult.bulk_create(result_list)
+        await ParserResult.bulk_create(result_list, ignore_conflicts=True)
 
     @classmethod
     async def get_result_by_username(cls, username: str) -> ParserResult:
