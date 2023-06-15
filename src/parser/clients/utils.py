@@ -1,12 +1,9 @@
 import asyncio
-import random
 
 import aiohttp
-import asyncpg
 from selenium.common import WebDriverException, TimeoutException
 
 from core.logs import custom_logger
-from db.connector import DatabaseConnector
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from db.crud.instagram_logins import InstagramLoginsTableDBHandler
 from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
@@ -16,8 +13,6 @@ from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredent
 def errors_handler_decorator(func):
     async def wrapper(*args, **kwargs):
         try:
-            # init db
-            await DatabaseConnector().async_init()
             res = await func(*args, **kwargs)
             return res
         except (asyncio.TimeoutError,
@@ -54,8 +49,5 @@ def errors_handler_decorator(func):
             custom_logger.error(f'Maybe something occur with "ozon" proxy....')
         except Exception as ex:
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
-        finally:
-            # close db connection
-            await DatabaseConnector().close()
 
     return wrapper
