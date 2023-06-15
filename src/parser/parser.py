@@ -1,8 +1,6 @@
 import asyncio
 import random
 
-from aiostream import stream, pipe
-
 from core.logs import custom_logger
 from core.settings import settings
 from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
@@ -12,7 +10,7 @@ from db.models import InstagramLogins
 from parser.clients.instagram import InstagramClient
 from parser.clients.utils import errors_handler_decorator
 from parser.exceptions import NoAccountsDBError, NoProxyDBError
-from parser.utils import add_new_accounts, chunks
+from parser.utils import add_new_accounts
 
 
 class Parser:
@@ -42,10 +40,9 @@ class Parser:
             try:
                 client = InstagramClient()
                 # get login base info (user_id, is_exists, followers)
-                api_answer = await client.get_account_info_by_user_name(login.username)
-                # update id and followers number
-                login.user_id = api_answer.user_id
-                login.followers = api_answer.followers_number
+                login = await client.get_account_info_by_user_name(login.username)
+                # update data in db
+                await InstagramLoginsTableDBHandler.update_login(login)
                 # sleep for n-sec
                 await asyncio.sleep(random.randint(0, settings.ID_UPDATE_PROCESS_DELAY_MAX_SEC))
                 return login
@@ -56,15 +53,9 @@ class Parser:
                     await asyncio.sleep(900)
 
     async def get_login_ids_in_loop(self, logins_list: list[InstagramLogins]) -> None:
-        for chunk in chunks(logins_list, 100):
-            updated_logins = []
-            xs = stream.iterate(chunk) | pipe.map(self.get_login_id, ordered=True, task_limit=5)
-            async with xs.stream() as streamer:
-                async for login in streamer:
-                    if login:
-                        updated_logins.append(login)
-            await InstagramLoginsTableDBHandler.update_login_list(updated_logins)
-            custom_logger.info(f'ids for {len(updated_logins)} updated!')
+        for login in logins_list:
+            await self.get_login_id(login)
+            custom_logger.info(f'id of {login.username} login is successfully updated!')
 
     @errors_handler_decorator
     async def collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
