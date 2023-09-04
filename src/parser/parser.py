@@ -52,6 +52,7 @@ class Parser:
                 # update login id and followers number
                 login.user_id = api_answer.user_id
                 login.followers = api_answer.followers_number
+                login.is_exists = True
                 # sleep for n-sec
                 await asyncio.sleep(random.randint(0, settings.ID_UPDATE_PROCESS_DELAY_MAX_SEC))
                 return login
