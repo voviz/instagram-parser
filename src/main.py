@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import time
+import traceback
 
 from core.logs import custom_logger
 from core.settings import settings
@@ -37,4 +38,5 @@ if __name__ == '__main__':
                 custom_logger.warning('Restart after 15 min ...')
                 time.sleep(900)
     except BaseException as ex:
+        traceback.print_exc()
         custom_logger.critical(ex)
