@@ -32,7 +32,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             # get account credentials from db
             account = await InstagramAccountsTableDBHandler.get_account()
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
                 edge='users/web_profile_info',
                 querystring={'username': username},
                 is_json=True,
@@ -75,7 +75,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             # get account credentials from db
             account = await InstagramAccountsTableDBHandler.get_account()
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
                 edge='feed/reels_media',
                 querystring={'reel_ids': user_id},
                 is_json=True,
@@ -87,12 +87,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
             # check if any reels exist
             if raw_data['reels']:
                 for i in raw_data['reels'][str(user_id)]['items']:
-                    if i['media_type'] == ThirdPartyAPIMediaType.photo:
-                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo,
+                    if i['media_type'] == ThirdPartyAPIMediaType.photo.value:
+                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo.value,
                                                url=i['image_versions2']['candidates'][0]['url'],
                                                created_at=i['taken_at'])
-                    if i['media_type'] == ThirdPartyAPIMediaType.video:
-                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.video,
+                    if i['media_type'] == ThirdPartyAPIMediaType.video.value:
+                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.video.value,
                                                url=i['video_versions'][0]['url'],
                                                created_at=i['taken_at'])
 
@@ -105,11 +105,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 story.sku = sku
                                 for wb in ('wb', 'вб', 'wildberries', 'вайл'):
                                     if wb in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.wildberries
+                                        story.marketplace = Marketplaces.wildberries.value
                                 for oz in ('ozon', 'озон'):
                                     if oz in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.ozon
-                                story.ad_type = AdType.text
+                                        story.marketplace = Marketplaces.ozon.value
+                                story.ad_type = AdType.text.value
 
                         # check marketplace if it is not defined yet
                         if story.sku and not story.marketplace:
@@ -118,9 +118,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 WildberrisClient().check_sku(sku),
                             )
                             if result[0]:
-                                story.marketplace = Marketplaces.ozon
+                                story.marketplace = Marketplaces.ozon.value
                             elif result[1]:
-                                story.marketplace = Marketplaces.wildberries
+                                story.marketplace = Marketplaces.wildberries.value
 
                     # check story for link
                     if not story.sku and i.get('story_link_stickers'):
@@ -128,12 +128,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         if 'ozon' in url or 'wildberries' in url:
                             story.url = await self._resolve_stories_link(url)
                             if 'ozon' in story.url:
-                                story.marketplace = Marketplaces.ozon
+                                story.marketplace = Marketplaces.ozon.value
                                 story.sku = OzonClient.extract_sku_from_url(story.url)
                             elif 'wildberries' in story.url:
-                                story.marketplace = Marketplaces.wildberries
+                                story.marketplace = Marketplaces.wildberries.value
                                 story.sku = WildberrisClient.extract_sku_from_url(story.url)
-                            story.ad_type = AdType.link
+                            story.ad_type = AdType.link.value
 
                     if story.sku:
                         stories_list.append(story)
@@ -171,7 +171,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             account = await InstagramAccountsTableDBHandler.get_account()
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
                 edge=f'feed/reels_media?{querystring}',
                 is_json=True,
                 cookie=account.cookies,
@@ -184,15 +184,19 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     stories_list = []
                     username = raw_data['reels'][id]['user']['username']
                     for item in raw_data['reels'][id]['items']:
-                        if item['media_type'] == ThirdPartyAPIMediaType.photo:
-                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo,
+                        print(item)
+                        if item['media_type'] == ThirdPartyAPIMediaType.photo.value:
+                            print("mh ere")
+                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo.value,
                                                    url=item['image_versions2']['candidates'][0]['url'],
                                                    created_at=item['taken_at'])
-                        if item['media_type'] == ThirdPartyAPIMediaType.video:
-                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.video,
+                        if item['media_type'] == ThirdPartyAPIMediaType.video.value:
+                            print("no ehre")
+                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.video.value,
                                                    url=item['video_versions'][0]['url'],
                                                    created_at=item['taken_at'])
-
+                        print()
+                        print(story)
                         # check story for sku in caption
                         if item.get('accessibility_caption'):
                             for kw in ('артикул', 'articul', 'sku'):
@@ -202,11 +206,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     story.sku = sku
                                     for wb in ('wb', 'вб', 'wildberries', 'вайл'):
                                         if wb in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.wildberries
+                                            story.marketplace = Marketplaces.wildberries.value
                                     for oz in ('ozon', 'озон'):
                                         if oz in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.ozon
-                                    story.ad_type = AdType.text
+                                            story.marketplace = Marketplaces.ozon.value
+                                    story.ad_type = AdType.text.value
 
                             # check marketplace if it is not defined yet
                             if story.sku and not story.marketplace:
@@ -215,9 +219,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     WildberrisClient().check_sku(sku),
                                 )
                                 if result[0]:
-                                    story.marketplace = Marketplaces.ozon
+                                    story.marketplace = Marketplaces.ozon.value
                                 elif result[1]:
-                                    story.marketplace = Marketplaces.wildberries
+                                    story.marketplace = Marketplaces.wildberries.value
 
                         # check story for link
                         if not story.sku and item.get('story_link_stickers'):
@@ -235,12 +239,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                         custom_logger.error('url: ' + url)
                                     continue
                                 if 'ozon' in story.url:
-                                    story.marketplace = Marketplaces.ozon
+                                    story.marketplace = Marketplaces.ozon.value
                                     story.sku = OzonClient.extract_sku_from_url(story.url)
                                 elif 'wildberries' in story.url:
-                                    story.marketplace = Marketplaces.wildberries
+                                    story.marketplace = Marketplaces.wildberries.value
                                     story.sku = WildberrisClient.extract_sku_from_url(story.url)
-                                story.ad_type = AdType.link
+                                story.ad_type = AdType.link.value
 
                         if story.sku:
                             stories_list.append(story)

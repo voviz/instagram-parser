@@ -13,7 +13,7 @@ class WildberrisClient(BaseThirdPartyAPIClient):
         # get account credentials from db
         account = await InstagramAccountsTableDBHandler.get_account()
         raw_data = await self.request(
-            method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+            method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
             edge='cards/detail',
             querystring={'regions': '80,115,38,4,64,83,33,68,70,69,30,86,75,40,1,66,110,22,31,48,71,114',
                          'nm': str(sku)},

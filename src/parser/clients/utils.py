@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 import aiohttp
 from selenium.common import WebDriverException, TimeoutException
@@ -48,6 +49,7 @@ def errors_handler_decorator(func):
             custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
             custom_logger.error(f'Maybe something occur with "ozon" proxy....')
         except Exception as ex:
+            traceback.print_exc()
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
 
     return wrapper
