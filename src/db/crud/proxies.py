@@ -1,9 +1,9 @@
-from enum import StrEnum
+from enum import Enum
 
 from db.models import Proxies
 
 
-class ProxyTypes(StrEnum):
+class ProxyTypes(Enum):
     ozon = 'ozon'
     parser = 'parser'
 

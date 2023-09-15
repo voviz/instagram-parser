@@ -9,18 +9,19 @@ from parser.clients.models import InstagramClientAnswer
 
 class InstagramLoginsTableDBHandler:
     @classmethod
-    async def update_login(cls, new_login_data: InstagramClientAnswer) -> None:
+    async def update_login(cls, new_login_data: InstagramLogins) -> None:
         await InstagramLogins.filter(username=new_login_data.username).update(user_id=new_login_data.user_id,
-                                                                              followers=new_login_data.followers_number,
+                                                                              followers=new_login_data.followers,
                                                                               is_exists=True,
-                                                                              updated_at=tortoise.timezone.now())
+                                                                              updated_at=new_login_data.updated_at)
 
     @classmethod
     async def update_login_list(cls, login_list: list[InstagramLogins]) -> None:
         # update 'updated_at' field
         for login in login_list:
             login.updated_at = tortoise.timezone.now()
-        await InstagramLogins.bulk_update(login_list, fields=['updated_at', 'user_id', 'followers', 'is_exists'])
+            await cls.update_login(login)
+        # await InstagramLogins.bulk_update(login_list, fields=['updated_at', 'user_id', 'followers', 'is_exists'])
 
     @classmethod
     async def get_login_all(cls) -> list[InstagramLogins]:

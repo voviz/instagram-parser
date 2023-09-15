@@ -1,5 +1,5 @@
 import json
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 
 import aiohttp as aiohttp
@@ -18,7 +18,7 @@ class BaseThirdPartyAPIClient:
                "accept-language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7"}
     base_url = ''
 
-    class HTTPMethods(StrEnum):
+    class HTTPMethods(Enum):
         GET = 'GET'
         POST = 'POST'
         PUT = 'PUT'

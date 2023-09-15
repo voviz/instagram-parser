@@ -1,17 +1,17 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field
-from enum import StrEnum, IntEnum
+from enum import Enum
 
 
-class ThirdPartyAPISource(StrEnum):
+class ThirdPartyAPISource(Enum):
     """
     Defines available api sources for third party APIs.
     """
     instagram = 'instagram'
 
 
-class ThirdPartyAPIMediaType(IntEnum):
+class ThirdPartyAPIMediaType(Enum):
     """
     Defines available media types from third party APIs.
     """
@@ -22,7 +22,7 @@ class ThirdPartyAPIMediaType(IntEnum):
     gif = 4
 
 
-class AdType(StrEnum):
+class AdType(Enum):
     """
     Defines available types of adverts.
     """
@@ -30,7 +30,7 @@ class AdType(StrEnum):
     link = 'link'
 
 
-class Marketplaces(StrEnum):
+class Marketplaces(Enum):
     """
     Defines available media types from third party APIs.
     """
