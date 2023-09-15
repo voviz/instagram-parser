@@ -105,11 +105,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 story.sku = sku
                                 for wb in ('wb', 'вб', 'wildberries', 'вайл'):
                                     if wb in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.wildberries.value
+                                        story.marketplace = Marketplaces.wildberries
                                 for oz in ('ozon', 'озон'):
                                     if oz in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.ozon.value
-                                story.ad_type = AdType.text.value
+                                        story.marketplace = Marketplaces.ozon
+                                story.ad_type = AdType.text
 
                         # check marketplace if it is not defined yet
                         if story.sku and not story.marketplace:
@@ -118,9 +118,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                 WildberrisClient().check_sku(sku),
                             )
                             if result[0]:
-                                story.marketplace = Marketplaces.ozon.value
+                                story.marketplace = Marketplaces.ozon
                             elif result[1]:
-                                story.marketplace = Marketplaces.wildberries.value
+                                story.marketplace = Marketplaces.wildberries
 
                     # check story for link
                     if not story.sku and i.get('story_link_stickers'):
@@ -128,12 +128,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         if 'ozon' in url or 'wildberries' in url:
                             story.url = await self._resolve_stories_link(url)
                             if 'ozon' in story.url:
-                                story.marketplace = Marketplaces.ozon.value
+                                story.marketplace = Marketplaces.ozon
                                 story.sku = OzonClient.extract_sku_from_url(story.url)
                             elif 'wildberries' in story.url:
-                                story.marketplace = Marketplaces.wildberries.value
+                                story.marketplace = Marketplaces.wildberries
                                 story.sku = WildberrisClient.extract_sku_from_url(story.url)
-                            story.ad_type = AdType.link.value
+                            story.ad_type = AdType.link
 
                     if story.sku:
                         stories_list.append(story)
@@ -201,11 +201,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     story.sku = sku
                                     for wb in ('wb', 'вб', 'wildberries', 'вайл'):
                                         if wb in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.wildberries.value
+                                            story.marketplace = Marketplaces.wildberries
                                     for oz in ('ozon', 'озон'):
                                         if oz in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.ozon.value
-                                    story.ad_type = AdType.text.value
+                                            story.marketplace = Marketplaces.ozon
+                                    story.ad_type = AdType.text
 
                             # check marketplace if it is not defined yet
                             if story.sku and not story.marketplace:
@@ -214,9 +214,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     WildberrisClient().check_sku(sku),
                                 )
                                 if result[0]:
-                                    story.marketplace = Marketplaces.ozon.value
+                                    story.marketplace = Marketplaces.ozon
                                 elif result[1]:
-                                    story.marketplace = Marketplaces.wildberries.value
+                                    story.marketplace = Marketplaces.wildberries
 
                         # check story for link
                         if not story.sku and item.get('story_link_stickers'):
@@ -234,12 +234,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                         custom_logger.error('url: ' + url)
                                     continue
                                 if 'ozon' in story.url:
-                                    story.marketplace = Marketplaces.ozon.value
+                                    story.marketplace = Marketplaces.ozon
                                     story.sku = OzonClient.extract_sku_from_url(story.url)
                                 elif 'wildberries' in story.url:
-                                    story.marketplace = Marketplaces.wildberries.value
+                                    story.marketplace = Marketplaces.wildberries
                                     story.sku = WildberrisClient.extract_sku_from_url(story.url)
-                                story.ad_type = AdType.link.value
+                                story.ad_type = AdType.link
 
                         if story.sku:
                             stories_list.append(story)
