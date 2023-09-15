@@ -32,7 +32,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             # get account credentials from db
             account = await InstagramAccountsTableDBHandler.get_account()
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge='users/web_profile_info',
                 querystring={'username': username},
                 is_json=True,
@@ -75,7 +75,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             # get account credentials from db
             account = await InstagramAccountsTableDBHandler.get_account()
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge='feed/reels_media',
                 querystring={'reel_ids': user_id},
                 is_json=True,
@@ -171,7 +171,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             account = await InstagramAccountsTableDBHandler.get_account()
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
             raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge=f'feed/reels_media?{querystring}',
                 is_json=True,
                 cookie=account.cookies,
@@ -184,19 +184,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     stories_list = []
                     username = raw_data['reels'][id]['user']['username']
                     for item in raw_data['reels'][id]['items']:
-                        print(item)
                         if item['media_type'] == ThirdPartyAPIMediaType.photo.value:
-                            print("mh ere")
                             story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo.value,
                                                    url=item['image_versions2']['candidates'][0]['url'],
                                                    created_at=item['taken_at'])
                         if item['media_type'] == ThirdPartyAPIMediaType.video.value:
-                            print("no ehre")
                             story = InstagramStory(media_type=ThirdPartyAPIMediaType.video.value,
                                                    url=item['video_versions'][0]['url'],
                                                    created_at=item['taken_at'])
-                        print()
-                        print(story)
                         # check story for sku in caption
                         if item.get('accessibility_caption'):
                             for kw in ('артикул', 'articul', 'sku'):

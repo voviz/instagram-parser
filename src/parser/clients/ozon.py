@@ -15,7 +15,7 @@ class OzonClient(BaseThirdPartyAPIClient):
         # get account credentials from db
         account = await InstagramAccountsTableDBHandler.get_account()
         raw_data = await self.request(
-            method=BaseThirdPartyAPIClient.HTTPMethods.GET.value,
+            method=BaseThirdPartyAPIClient.HTTPMethods.GET,
             edge='search',
             querystring={'text': str(sku), 'from_global': 'true'},
             is_json=False,
