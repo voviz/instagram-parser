@@ -4,7 +4,7 @@ import time
 import traceback
 
 from src.core.logs import custom_logger
-from src.core.settings import settings
+from src.core.config import settings
 from src.parser.parser import Parser
 from src.parser.utils import chunks, check_driver_installation
 

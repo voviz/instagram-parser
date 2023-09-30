@@ -4,7 +4,7 @@ import random
 from aiostream import stream, pipe
 
 from src.core.logs import custom_logger
-from src.core.settings import settings
+from src.core.config import settings
 from src.db.connector import DatabaseConnector
 from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
 from src.db.crud.instagram_logins import InstagramLoginsTableDBHandler
