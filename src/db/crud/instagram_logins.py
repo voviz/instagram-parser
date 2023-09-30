@@ -1,37 +1,59 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-import tortoise
-from tortoise.expressions import Q
+from sqlalchemy import select, update
 
 from src.db.models import InstagramLogins
 
 
-class InstagramLoginsTableDBHandler:
-    @classmethod
-    async def update_login(cls, new_login_data: InstagramLogins) -> None:
-        await InstagramLogins.filter(username=new_login_data.username).update(user_id=new_login_data.user_id,
-                                                                              followers=new_login_data.followers,
-                                                                              is_exists=True,
-                                                                              updated_at=new_login_data.updated_at)
+async def update_login(session, new_login_data: InstagramLogins) -> None:
+    await session.execute(
+        update(InstagramLogins)
+        .where(InstagramLogins.username == new_login_data.username)
+        .values(
+            user_id=new_login_data.user_id,
+            followers=new_login_data.followers,
+            is_exists=True,
+            updated_at=new_login_data.updated_at,
+        )
+    )
+    await session.commit()
 
-    @classmethod
-    async def update_login_list(cls, login_list: list[InstagramLogins]) -> None:
-        # update 'updated_at' field
-        for login in login_list:
-            login.updated_at = tortoise.timezone.now()
-            await cls.update_login(login)
-        # await InstagramLogins.bulk_update(login_list, fields=['updated_at', 'user_id', 'followers', 'is_exists'])
 
-    @classmethod
-    async def get_login_all(cls) -> list[InstagramLogins]:
-        not_updated_logins = await InstagramLogins.filter(updated_at=None).all()
-        updated_logins = await InstagramLogins.filter(
-            Q(is_exists=True) & Q(updated_at__lt=tortoise.timezone.now() - timedelta(days=1))
-        ).all().order_by('updated_at')
-        not_updated_logins.extend(updated_logins)
-        return not_updated_logins
+async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
+    for login in login_list:
+        login.updated_at = datetime.now()
+        await session.execute(
+            update(InstagramLogins)
+            .where(InstagramLogins.username == login.username)
+            .values(
+                updated_at=login.updated_at, user_id=login.user_id, followers=login.followers, is_exists=login.is_exists
+            )
+        )
+    await session.commit()
 
-    @classmethod
-    async def mark_as_not_exists(cls, username: str) -> None:
-        await InstagramLogins.filter(username=username).update(is_exists=False,
-                                                               updated_at=tortoise.timezone.now())
+
+async def get_login_all(session) -> list[InstagramLogins]:
+    not_updated_logins_result = await session.execute(
+        select(InstagramLogins).filter(InstagramLogins.updated_at == None)
+    )
+    not_updated_logins = not_updated_logins_result.scalars().all()
+
+    cutoff_date = datetime.now() - timedelta(days=1)
+    updated_logins_result = await session.execute(
+        select(InstagramLogins)
+        .where(InstagramLogins.is_exists == True, InstagramLogins.updated_at < cutoff_date)
+        .order_by(InstagramLogins.updated_at)
+    )
+    updated_logins = updated_logins_result.scalars().all()
+
+    not_updated_logins.extend(updated_logins)
+    return not_updated_logins
+
+
+async def mark_as_not_exists(session, username: str) -> None:
+    await session.execute(
+        update(InstagramLogins)
+        .where(InstagramLogins.username == username)
+        .values(is_exists=False, updated_at=datetime.now())
+    )
+    await session.commit()

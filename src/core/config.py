@@ -1,7 +1,9 @@
 import multiprocessing
 import pathlib
+
 from dotenv import load_dotenv
 from pydantic import BaseSettings, Field
+
 
 # root directory
 ROOT_PATH = str(pathlib.Path(__file__).parent.parent.parent)
@@ -21,7 +23,7 @@ class Settings(BaseSettings):
     PARSER_BETWEEN_RESTARTS_SLEEP_SEC: int = Field(default=1900, env='PARSER_BETWEEN_RESTARTS_SLEEP_SEC')
 
     class Config:
-        env_prefix = ""
+        env_prefix = ''
         case_sentive = False
         env_file = '../.env'
         env_file_encoding = 'utf-8'

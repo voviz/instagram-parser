@@ -1,52 +1,54 @@
-from tortoise import fields
-from tortoise.models import Model
+from datetime import datetime
+
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy.ext.declarative import declarative_base
+
+
+Base = declarative_base()
 
 
 class IdMixin:
-    id = fields.IntField(pk=True)
+    id = Column(Integer, primary_key=True)  # noqa: A003
 
 
-class InstagramAccounts(Model, IdMixin):
-    credentials = fields.CharField(max_length=255, unique=True)
-    cookies = fields.CharField(max_length=5000)
-    user_agent = fields.CharField(max_length=255)
-    proxy = fields.CharField(max_length=255, null=True)
-    last_used_at = fields.DatetimeField(null=True)
-    daily_usage_rate = fields.IntField(default=0)
+class InstagramAccounts(Base, IdMixin):
+    __tablename__ = 'instagram_accounts'
 
-    class Meta:
-        table = 'instagram_accounts'
-
-
-class InstagramLogins(Model, IdMixin):
-    username = fields.CharField(max_length=255, unique=True)
-    user_id = fields.BigIntField(null=True)
-    followers = fields.BigIntField(null=True)
-    is_exists = fields.BooleanField(null=True)
-    created_at = fields.DatetimeField(auto_now_add=True)
-    updated_at = fields.DatetimeField(null=True)
-
-    class Meta:
-        table = 'instagram_logins'
+    credentials = Column(String(255), unique=True)
+    cookies = Column(String(5000))
+    user_agent = Column(String(255))
+    proxy = Column(String(255), nullable=True)
+    last_used_at = Column(DateTime, nullable=True)
+    daily_usage_rate = Column(Integer, default=0)
 
 
-class Proxies(Model, IdMixin):
-    proxy = fields.CharField(max_length=255, unique=True)
-    type = fields.CharField(max_length=255)
+class InstagramLogins(Base, IdMixin):
+    __tablename__ = 'instagram_logins'
 
-    class Meta:
-        table = 'proxies'
+    username = Column(String(255), unique=True)
+    user_id = Column(BigInteger, nullable=True)
+    followers = Column(BigInteger, nullable=True)
+    is_exists = Column(Boolean, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)
 
 
-class ParserResult(Model, IdMixin):
-    instagram_username = fields.CharField(max_length=255)
-    marketplace = fields.CharField(max_length=255, null=True)
-    story_publication_date = fields.DatetimeField(null=True)
-    sku = fields.BigIntField(null=True)
-    ad_type = fields.CharField(max_length=255, null=True)
-    is_checked = fields.BooleanField(default=False)
-    created_at = fields.DatetimeField(auto_now_add=True)
+class Proxies(Base, IdMixin):
+    __tablename__ = 'proxies'
 
-    class Meta:
-        table = 'parser_result'
-        unique_together = ('story_publication_date', 'sku')
+    proxy = Column(String(255), unique=True)
+    type = Column(String(255))  # noqa: A003
+
+
+class ParserResult(Base, IdMixin):
+    __tablename__ = 'parser_result'
+
+    instagram_username = Column(String(255))
+    marketplace = Column(String(255), nullable=True)
+    story_publication_date = Column(DateTime, nullable=True)
+    sku = Column(BigInteger, nullable=True)
+    ad_type = Column(String(255), nullable=True)
+    is_checked = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('story_publication_date', 'sku'),)

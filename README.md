@@ -28,10 +28,10 @@
 Запутсите скрипт с помощью команды: *python src/main.py*.
 
 **если не создан .env файл, то настройки передаются в качестве аргументов команной строки*:
-``` 
-usage: main.py [-h] [-db_host DB_HOST] [-db_port DB_PORT] [-db_user DB_USER] [-db_password DB_PASSWORD] [-ar ACCOUNT_DAILY_USAGE_RATE] [-pc PROCESS_COUNT] [-um UPDATE_PROCESS_DELAY_MAX] [-as ACCOUNT_TOO_MANY_REQUESTS_SLEEP]                                                                                                                                                                                                                           
-options:                                                                                                                                                                                                                       
-  -h, --help            show this help message and exit                                                                                                                                                                        
+```
+usage: main.py [-h] [-db_host DB_HOST] [-db_port DB_PORT] [-db_user DB_USER] [-db_password DB_PASSWORD] [-ar ACCOUNT_DAILY_USAGE_RATE] [-pc PROCESS_COUNT] [-um UPDATE_PROCESS_DELAY_MAX] [-as ACCOUNT_TOO_MANY_REQUESTS_SLEEP]
+options:
+  -h, --help            show this help message and exit
   -db_host DB_HOST      db host address (default: None)
   -db_port DB_PORT      db host port (default: None)
   -db_user DB_USER      db host user (default: None)
