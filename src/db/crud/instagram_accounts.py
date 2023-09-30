@@ -104,7 +104,7 @@ async def add_new_accounts(session: AsyncSession) -> bool:
             raise NoProxyDBError(ProxyTypes.parser)
         for i, acc in enumerate(new_accounts):
             acc.proxy = proxies[i % len(proxies)].proxy
-        await set_proxy_for_accounts(s, new_accounts)
+        await set_proxy_for_accounts(session, new_accounts)
         custom_logger.info(f'{len(new_accounts)} new accounts added!')
         return True
     return False
