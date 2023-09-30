@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import random
 
+import pytz
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,7 +40,7 @@ async def get_account(session: AsyncSession) -> InstagramAccounts:
     account = random.choice(account_list)
 
     # Logic for updating the selected account
-    if account.last_used_at and (datetime.now() - account.last_used_at) >= timedelta(days=1):
+    if account.last_used_at and (datetime.now(pytz.utc) - account.last_used_at) >= timedelta(days=1):
         await session.execute(
             update(InstagramAccounts)
             .where(InstagramAccounts.credentials == account.credentials)
@@ -66,7 +67,7 @@ async def _get_account_daily_usage_rate(session: AsyncSession, account: Instagra
 async def update_accounts_daily_usage_rate(session: AsyncSession) -> None:
     accounts = await get_accounts_all(session)
     for acc in accounts:
-        if acc.last_used_at and (datetime.now() - acc.last_used_at).days >= 1:
+        if acc.last_used_at and (datetime.now(pytz.utc) - acc.last_used_at).days >= 1:
             await session.execute(
                 update(InstagramAccounts)
                 .where(InstagramAccounts.credentials == acc.credentials)
