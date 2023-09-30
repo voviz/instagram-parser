@@ -3,10 +3,10 @@ import concurrent.futures
 import time
 import traceback
 
-from core.logs import custom_logger
-from core.settings import settings
-from parser.parser import Parser
-from parser.utils import chunks, check_driver_installation
+from src.core.logs import custom_logger
+from src.core.settings import settings
+from src.parser.parser import Parser
+from src.parser.utils import chunks, check_driver_installation
 
 if __name__ == '__main__':
     try:

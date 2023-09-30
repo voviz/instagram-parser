@@ -3,17 +3,17 @@ import random
 
 from aiostream import stream, pipe
 
-from core.logs import custom_logger
-from core.settings import settings
-from db.connector import DatabaseConnector
-from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.instagram_logins import InstagramLoginsTableDBHandler
-from db.crud.parser_result import ParserResultTableDBHandler
-from db.models import InstagramLogins
-from parser.clients.instagram import InstagramClient
-from parser.clients.utils import errors_handler_decorator
-from parser.exceptions import NoAccountsDBError, NoProxyDBError
-from parser.utils import add_new_accounts, chunks
+from src.core.logs import custom_logger
+from src.core.settings import settings
+from src.db.connector import DatabaseConnector
+from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from src.db.crud.instagram_logins import InstagramLoginsTableDBHandler
+from src.db.crud.parser_result import ParserResultTableDBHandler
+from src.db.models import InstagramLogins
+from src.parser.clients.instagram import InstagramClient
+from src.parser.clients.utils import errors_handler_decorator
+from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
+from src.parser.utils import add_new_accounts, chunks
 
 
 class Parser:

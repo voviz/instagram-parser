@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from parser.exceptions import InvalidProxyFormatError
+from src.parser.exceptions import InvalidProxyFormatError
 
 
 class ProxyHandler:

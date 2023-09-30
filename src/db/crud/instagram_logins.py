@@ -3,8 +3,7 @@ from datetime import timedelta
 import tortoise
 from tortoise.expressions import Q
 
-from db.models import InstagramLogins
-from parser.clients.models import InstagramClientAnswer
+from src.db.models import InstagramLogins
 
 
 class InstagramLoginsTableDBHandler:

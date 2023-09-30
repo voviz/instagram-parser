@@ -1,6 +1,6 @@
 from enum import Enum
 
-from db.models import Proxies
+from src.db.models import Proxies
 
 
 class ProxyTypes(Enum):

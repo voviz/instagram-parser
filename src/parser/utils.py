@@ -1,9 +1,9 @@
 from seleniumbase import get_driver
 
-from core.logs import custom_logger
-from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
-from parser.exceptions import NoProxyDBError
+from src.core.logs import custom_logger
+from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from src.db.crud.proxies import ProxiesTableDBHandler, ProxyTypes
+from src.parser.exceptions import NoProxyDBError
 
 
 async def add_new_accounts() -> bool:

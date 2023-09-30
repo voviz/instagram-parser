@@ -1,5 +1,5 @@
-from db.models import ParserResult
-from parser.clients.models import InstagramClientAnswer
+from src.db.models import ParserResult
+from src.parser.clients.models import InstagramClientAnswer
 
 
 class ParserResultTableDBHandler:

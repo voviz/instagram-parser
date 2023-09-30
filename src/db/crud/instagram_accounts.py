@@ -3,9 +3,9 @@ import random
 import tortoise
 from tortoise.expressions import Q
 
-from core.settings import settings
-from db.models import InstagramAccounts
-from parser.exceptions import NoAccountsDBError
+from src.core.settings import settings
+from src.db.models import InstagramAccounts
+from src.parser.exceptions import NoAccountsDBError
 
 
 class InstagramAccountsTableDBHandler:

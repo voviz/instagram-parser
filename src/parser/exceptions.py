@@ -1,7 +1,7 @@
 from typing import Any
 
-from db.crud.proxies import ProxyTypes
-from db.models import InstagramAccounts
+from src.db.crud.proxies import ProxyTypes
+from src.db.models import InstagramAccounts
 
 
 class BaseParserException(Exception):
