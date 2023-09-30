@@ -6,32 +6,22 @@ from src.parser.exceptions import InvalidProxyFormatError
 
 class ProxyHandler:
     @staticmethod
+    def _split_proxy(proxy: str) -> list:
+        proxy = proxy.lstrip('http://')
+        proxy_parts = proxy.split('@') if '@' in proxy else [proxy]
+        parts = []
+        for p in proxy_parts:
+            parts.extend(p.split(':'))
+        if len(parts) < 4:
+            raise InvalidProxyFormatError(proxy)
+        return parts
+
+    @staticmethod
     def convert_to_aiohttp_format(proxy: str) -> str:
         """
         convert to format -> http://login:password@ip:port
         """
-        try:
-            # split proxy to the parts
-            if '@' in proxy:
-                proxy = proxy.lstrip('http://').split('@')
-                proxy_parts = []
-                proxy_parts.extend(proxy[0].split(':'))
-                proxy_parts.extend(proxy[1].split(':'))
-            else:
-                proxy_parts = proxy.lstrip('http://').split(':')
-            # check each part
-            for part in proxy_parts:
-                if part.isdigit():
-                    port = part
-                elif '.' in part:
-                    ip = part
-            if proxy_parts.index(ip) == 2 and proxy_parts.index(port) == 3:
-                login, password = proxy_parts[0], proxy_parts[1]
-            else:
-                login, password = proxy_parts[2], proxy_parts[3]
-        except Exception:
-            raise InvalidProxyFormatError(proxy)
-
+        login, password, ip, port = ProxyHandler._split_proxy(proxy)
         return f'http://{login}:{password}@{ip}:{port}'
 
     @staticmethod
@@ -39,28 +29,7 @@ class ProxyHandler:
         """
         convert to format -> login:password@ip:port
         """
-        try:
-            # split proxy to the parts
-            if '@' in proxy:
-                proxy = proxy.lstrip('http://').split('@')
-                proxy_parts = []
-                proxy_parts.extend(proxy[0].split(':'))
-                proxy_parts.extend(proxy[1].split(':'))
-            else:
-                proxy_parts = proxy.lstrip('http://').split(':')
-            # check each part
-            for part in proxy_parts:
-                if part.isdigit():
-                    port = part
-                elif '.' in part:
-                    ip = part
-            if proxy_parts.index(ip) == 2 and proxy_parts.index(port) == 3:
-                login, password = proxy_parts[0], proxy_parts[1]
-            else:
-                login, password = proxy_parts[2], proxy_parts[3]
-        except Exception:
-            raise InvalidProxyFormatError(proxy)
-
+        login, password, ip, port = ProxyHandler._split_proxy(proxy)
         return f'{login}:{password}@{ip}:{port}'
 
 
@@ -120,13 +89,13 @@ class SeleniumProxyHandler:
     def __init__(self, host, port, user, password):
         self._dir = os.path.normpath(tempfile.mkdtemp())
 
-        manifest_file = os.path.join(self._dir, "manifest.json")
-        with open(manifest_file, mode="w") as f:
+        manifest_file = os.path.join(self._dir, 'manifest.json')
+        with open(manifest_file, mode='w') as f:
             f.write(self.manifest_json)
 
         background_js = self.background_js % (host, port, user, password)
-        background_file = os.path.join(self._dir, "background.js")
-        with open(background_file, mode="w") as f:
+        background_file = os.path.join(self._dir, 'background.js')
+        with open(background_file, mode='w') as f:
             f.write(background_js)
 
     @property
@@ -135,6 +104,7 @@ class SeleniumProxyHandler:
 
     def __del__(self):
         import shutil
+
         shutil.rmtree(self._dir)
 
     @staticmethod
@@ -142,26 +112,5 @@ class SeleniumProxyHandler:
         """
         from format like ip:port:login:password -> http://login:password@ip:port
         """
-        try:
-            # split proxy to the parts
-            if '@' in proxy:
-                proxy = proxy.lstrip('http://').split('@')
-                proxy_parts = []
-                proxy_parts.extend(proxy[0].split(':'))
-                proxy_parts.extend(proxy[1].split(':'))
-            else:
-                proxy_parts = proxy.lstrip('http://').split(':')
-            # check each part
-            for part in proxy_parts:
-                if part.isdigit():
-                    port = part
-                elif '.' in part:
-                    ip = part
-            if proxy_parts.index(ip) == 2 and proxy_parts.index(port) == 3:
-                login, password = proxy_parts[0], proxy_parts[1]
-            else:
-                login, password = proxy_parts[2], proxy_parts[3]
-        except Exception:
-            raise InvalidProxyFormatError(proxy)
-
+        ip, port, login, password = ProxyHandler._split_proxy(proxy)
         return ip, int(port), login, password
