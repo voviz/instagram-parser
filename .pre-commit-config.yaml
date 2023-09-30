@@ -1,0 +1,56 @@
+default_language_version:
+    python: python3
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+    -   id: check-added-large-files
+    -   id: check-yaml
+    -   id: double-quote-string-fixer
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+-   repo: https://github.com/asottile/pyupgrade
+    rev: v2.26.0
+    hooks:
+    -   id: pyupgrade
+        entry: pyupgrade --py39-plus --keep-percent-format
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+-   repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+    -   id: black
+        entry: black --skip-string-normalization --line-length=120 --target-version=py39
+
+-   repo: https://github.com/asottile/yesqa
+    rev: v1.2.3
+    hooks:
+    -   id: yesqa
+        additional_dependencies:
+            - flake8-broken-line==0.3.0
+            - flake8-bugbear==21.9.1
+            - flake8-builtins==1.5.3
+            - flake8-cognitive-complexity==0.1.0
+            - flake8-comprehensions==3.6.1
+            - flake8-logging-format==0.6.0
+            - flake8-pie==0.15.0
+            - flake8-return==1.1.2
+            - flake8-simplify==0.14.1
+            - pep8-naming==0.11.1
+-   repo: https://github.com/pycqa/flake8.git
+    rev: 3.9.2
+    hooks:
+    -   id: flake8
+        additional_dependencies:
+            - flake8-broken-line==0.3.0
+            - flake8-bugbear==21.9.1
+            - flake8-builtins==1.5.3
+            - flake8-cognitive-complexity==0.1.0
+            - flake8-comprehensions==3.6.1
+            - flake8-logging-format==0.6.0
+            - flake8-pie==0.15.0
+            - flake8-return==1.1.2
+            - flake8-simplify==0.14.1
+            - pep8-naming==0.11.1
