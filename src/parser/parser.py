@@ -39,7 +39,7 @@ class Parser:
         async with async_session() as s:
             custom_logger.info('Start parser ...')
             custom_logger.info('Prepare database ...')
-            await add_new_accounts()
+            await add_new_accounts(s)
             await update_accounts_daily_usage_rate(s)
             custom_logger.info('Parser is ready ...')
             logins_for_update = await get_login_all(s)
