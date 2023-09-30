@@ -8,7 +8,7 @@ class BaseParserException(Exception):
     """Base class for all parser errors"""
 
     def __str__(self):
-        return "Something goes wrong with parser"
+        return 'Something goes wrong with parser'
 
 
 class ThirdPartyApiException(BaseParserException):
@@ -26,7 +26,7 @@ class LoginNotExist(ThirdPartyApiException):
         self.account_name = account_name
 
     def __str__(self):
-        return 'Login not exist: {}'.format(self.account_name)
+        return f'Login not exist: {self.account_name}'
 
 
 class AccountConfirmationRequired(ThirdPartyApiException):
@@ -34,7 +34,7 @@ class AccountConfirmationRequired(ThirdPartyApiException):
         self.account = account
 
     def __str__(self):
-        return 'For account {} auth confirmation is required'.format(self.account.credentials)
+        return f'For account {self.account.credentials} auth confirmation is required'
 
 
 class AccountInvalidCredentials(ThirdPartyApiException):
@@ -42,7 +42,7 @@ class AccountInvalidCredentials(ThirdPartyApiException):
         self.account = account
 
     def __str__(self):
-        return 'Invalid credentials for account: {}'.format(self.account.credentials)
+        return f'Invalid credentials for account: {self.account.credentials}'
 
 
 class AccountTooManyRequests(ThirdPartyApiException):
@@ -50,7 +50,7 @@ class AccountTooManyRequests(ThirdPartyApiException):
         self.account = account
 
     def __str__(self):
-        return 'Too many requests from account: {} ... Delete ...'.format(self.account.credentials)
+        return f'Too many requests from account: {self.account.credentials} ... Delete ...'
 
 
 class ProxyTooManyRequests(ThirdPartyApiException):
@@ -58,7 +58,7 @@ class ProxyTooManyRequests(ThirdPartyApiException):
         self.proxy = proxy
 
     def __str__(self):
-        return 'Too many requests from proxy: {} ...'.format(self.proxy)
+        return f'Too many requests from proxy: {self.proxy} ...'
 
 
 class InvalidProxyFormatError(BaseParserException):
@@ -66,7 +66,7 @@ class InvalidProxyFormatError(BaseParserException):
         self.proxy = proxy
 
     def __str__(self):
-        return 'Invalid format of proxy: {}'.format(self.proxy)
+        return f'Invalid format of proxy: {self.proxy}'
 
 
 class NoAccountsDBError(BaseParserException):
@@ -75,14 +75,14 @@ class NoAccountsDBError(BaseParserException):
 
 
 class NoProxyDBError(BaseParserException):
-    def __init__(self, type: ProxyTypes):
-        self.type = type
+    def __init__(self, proxy_type: ProxyTypes):
+        self.proxy_type = proxy_type
 
     def __str__(self):
-        if self.type == ProxyTypes.parser:
-            return f'No proxies of type {self.type}! Cannot add new accounts in db ...'
+        if self.proxy_type == ProxyTypes.parser:
+            return f'No proxies of type {self.proxy_type}! Cannot add new accounts in db ...'
         else:
-            return f'No proxies of type {self.type} to work with in db ...'
+            return f'No proxies of type {self.proxy_type} to work with in db ...'
 
 
 class NotEnoughProxyDBError(BaseParserException):
@@ -91,6 +91,8 @@ class NotEnoughProxyDBError(BaseParserException):
         self.account_count = account_count
 
     def __str__(self):
-        return f'Not enough proxies in db ....\n' \
-               f'Cannot add new accounts in db ...' \
-               f'You have to add {self.account_count // 10 - self.proxy_count} more proxies'
+        return (
+            f'Not enough proxies in db ....\n'
+            f'Cannot add new accounts in db ...'
+            f'You have to add {self.account_count // 10 - self.proxy_count} more proxies'
+        )

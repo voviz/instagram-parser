@@ -3,6 +3,7 @@ import sys
 
 from loguru import logger
 
+
 # root directory
 ROOT_PATH = str(pathlib.Path(__file__).parent.parent)
 
