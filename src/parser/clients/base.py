@@ -4,8 +4,8 @@ from typing import Any
 
 import aiohttp as aiohttp
 
-from parser.proxy_handler import ProxyHandler
-from parser.exceptions import ThirdPartyApiException
+from src.parser.proxy_handler import ProxyHandler
+from src.parser.exceptions import ThirdPartyApiException
 
 
 class BaseThirdPartyAPIClient:

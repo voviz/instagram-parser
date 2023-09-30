@@ -1,5 +1,5 @@
-from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from parser.clients.base import BaseThirdPartyAPIClient
+from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from src.parser.clients.base import BaseThirdPartyAPIClient
 
 
 class WildberrisClient(BaseThirdPartyAPIClient):

@@ -1,11 +1,8 @@
 import asyncio
-import logging
 
 from tortoise import Tortoise
 
 from src.core.config import settings
-
-log = logging.getLogger(__name__)
 
 
 class DatabaseConnector:

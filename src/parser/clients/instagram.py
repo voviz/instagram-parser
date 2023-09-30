@@ -7,17 +7,17 @@ from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
-from core.logs import custom_logger
-from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
-from parser.clients.base import BaseThirdPartyAPIClient
-from parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
+from src.core.logs import custom_logger
+from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from src.db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
+from src.parser.clients.base import BaseThirdPartyAPIClient
+from src.parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
     Marketplaces, AdType
-from parser.clients.ozon import OzonClient
-from parser.clients.wildberries import WildberrisClient
-from parser.exceptions import AccountConfirmationRequired, \
+from src.parser.clients.ozon import OzonClient
+from src.parser.clients.wildberries import WildberrisClient
+from src.parser.exceptions import AccountConfirmationRequired, \
     AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError, ProxyTooManyRequests
-from parser.proxy_handler import ProxyHandler
+from src.parser.proxy_handler import ProxyHandler
 
 
 class InstagramClient(BaseThirdPartyAPIClient):

@@ -4,10 +4,10 @@ import traceback
 import aiohttp
 from selenium.common import WebDriverException, TimeoutException
 
-from core.logs import custom_logger
-from db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from db.crud.instagram_logins import InstagramLoginsTableDBHandler
-from parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
+from src.core.logs import custom_logger
+from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
+from src.db.crud.instagram_logins import InstagramLoginsTableDBHandler
+from src.parser.exceptions import AccountConfirmationRequired, AccountInvalidCredentials, LoginNotExist, \
     AccountTooManyRequests, NoProxyDBError, ThirdPartyApiException, ProxyTooManyRequests
 
 
