@@ -5,8 +5,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
+from src.core.logs import custom_logger
+from src.db.crud.proxies import get_proxy_all, ProxyTypes
 from src.db.models import InstagramAccounts
-from src.parser.exceptions import NoAccountsDBError
+from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
 
 
 async def get_accounts_all(session: AsyncSession) -> list[InstagramAccounts]:
@@ -14,12 +16,12 @@ async def get_accounts_all(session: AsyncSession) -> list[InstagramAccounts]:
     return result.scalars().all()
 
 
-async def get_accounts_without_proxy(session) -> list[InstagramAccounts]:
+async def get_accounts_without_proxy(session: AsyncSession) -> list[InstagramAccounts]:
     result = await session.execute(select(InstagramAccounts).filter(InstagramAccounts.proxy == None))
     return result.scalars().all()
 
 
-async def get_account(session) -> InstagramAccounts:
+async def get_account(session: AsyncSession) -> InstagramAccounts:
     query = select(InstagramAccounts).filter(
         InstagramAccounts.proxy != None, InstagramAccounts.daily_usage_rate < settings.ACCOUNT_DAILY_USAGE_RATE
     )
@@ -54,14 +56,14 @@ async def get_account(session) -> InstagramAccounts:
     return account
 
 
-async def _get_account_daily_usage_rate(session, account: InstagramAccounts) -> int:
+async def _get_account_daily_usage_rate(session: AsyncSession, account: InstagramAccounts) -> int:
     result = await session.execute(
         select(InstagramAccounts.daily_usage_rate).where(InstagramAccounts.credentials == account.credentials)
     )
     return result.scalar()
 
 
-async def update_accounts_daily_usage_rate(session) -> None:
+async def update_accounts_daily_usage_rate(session: AsyncSession) -> None:
     accounts = await get_accounts_all(session)
     for acc in accounts:
         if acc.last_used_at and (datetime.now() - acc.last_used_at).days >= 1:
@@ -79,7 +81,7 @@ async def update_accounts_daily_usage_rate(session) -> None:
     await session.commit()
 
 
-async def set_proxy_for_accounts(session, accounts: list[InstagramAccounts]) -> None:
+async def set_proxy_for_accounts(session: AsyncSession, accounts: list[InstagramAccounts]) -> None:
     for account in accounts:
         await session.execute(
             update(InstagramAccounts)
@@ -89,6 +91,20 @@ async def set_proxy_for_accounts(session, accounts: list[InstagramAccounts]) -> 
     await session.commit()
 
 
-async def delete_account(session, account: InstagramAccounts) -> None:
+async def delete_account(session: AsyncSession, account: InstagramAccounts) -> None:
     await session.delete(account)
     await session.commit()
+
+
+async def add_new_accounts(session: AsyncSession) -> bool:
+    # get new accs and union with proxies
+    if new_accounts := await get_accounts_without_proxy(session):
+        proxies = await get_proxy_all(session, ProxyTypes.parser)
+        if not proxies:
+            raise NoProxyDBError(ProxyTypes.parser)
+        for i, acc in enumerate(new_accounts):
+            acc.proxy = proxies[i % len(proxies)].proxy
+        await set_proxy_for_accounts(s, new_accounts)
+        custom_logger.info(f'{len(new_accounts)} new accounts added!')
+        return True
+    return False

@@ -8,15 +8,28 @@ from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
 from src.core.logs import custom_logger
-from src.db.crud.instagram_accounts import InstagramAccountsTableDBHandler
-from src.db.crud.proxies import ProxyTypes, ProxiesTableDBHandler
+from src.db.connector import async_session
+from src.db.crud.instagram_accounts import get_account
+from src.db.crud.proxies import get_proxy_all, ProxyTypes
 from src.parser.clients.base import BaseThirdPartyAPIClient
-from src.parser.clients.models import InstagramClientAnswer, ThirdPartyAPISource, InstagramStory, ThirdPartyAPIMediaType, \
-    Marketplaces, AdType
+from src.parser.clients.models import (
+    AdType,
+    InstagramClientAnswer,
+    InstagramStory,
+    Marketplaces,
+    ThirdPartyAPIMediaType,
+    ThirdPartyAPISource,
+)
 from src.parser.clients.ozon import OzonClient
-from src.parser.clients.wildberries import WildberrisClient
-from src.parser.exceptions import AccountConfirmationRequired, \
-    AccountInvalidCredentials, LoginNotExist, AccountTooManyRequests, NoProxyDBError, ProxyTooManyRequests
+from src.parser.clients.wildberries import WildberriesClient
+from src.parser.exceptions import (
+    AccountConfirmationRequired,
+    AccountInvalidCredentials,
+    AccountTooManyRequests,
+    LoginNotExist,
+    NoProxyDBError,
+    ProxyTooManyRequests,
+)
 from src.parser.proxy_handler import ProxyHandler
 
 
@@ -24,13 +37,15 @@ class InstagramClient(BaseThirdPartyAPIClient):
     """
     Custom instagram API
     """
+
     api_name = 'InstagramAPI'
     base_url = 'https://www.instagram.com/api/v1'
 
     async def get_account_info_by_user_name(self, username: str) -> InstagramClientAnswer:
         try:
             # get account credentials from db
-            account = await InstagramAccountsTableDBHandler.get_account()
+            async with async_session() as s:
+                account = await get_account(s)
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge='users/web_profile_info',
@@ -42,105 +57,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
             if not raw_data['data']['user']:
                 raise LoginNotExist(account_name=username)
-            return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
-                                         username=username,
-                                         user_id=raw_data['data']['user']['id'],
-                                         followers_number=raw_data['data']['user']['edge_followed_by']['count'], )
-        except TooManyRedirects:
-            raise AccountInvalidCredentials(account=account)
-        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
-            ex.proxy = account.proxy
-            raise ex
-        except Exception as ex:
-            """
-            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
-            So Exception class is used
-            """
-            if ex.__dict__.get('status'):
-                if ex.status == 400:
-                    if ex.answer['message'] == 'useragent mismatch':
-                        raise AccountInvalidCredentials(account=account)
-                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
-                        raise AccountConfirmationRequired(account=account)
-                if ex.status == 401:
-                    raise AccountTooManyRequests(account=account)
-                if ex.status == 404:
-                    raise LoginNotExist(account_name=username)
-                if ex.status == 500:
-                    raise ProxyTooManyRequests(proxy=account.proxy)
-            raise ex
-
-    async def get_account_stories_by_id(self, username: str, user_id: int) -> InstagramClientAnswer:
-        try:
-            # get account credentials from db
-            account = await InstagramAccountsTableDBHandler.get_account()
-            raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
-                edge='feed/reels_media',
-                querystring={'reel_ids': user_id},
-                is_json=True,
-                cookie=account.cookies,
-                user_agent=account.user_agent,
-                proxy=account.proxy,
+            return InstagramClientAnswer(
+                source=ThirdPartyAPISource.instagram,
+                username=username,
+                user_id=raw_data['data']['user']['id'],
+                followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
-            stories_list = []
-            # check if any reels exist
-            if raw_data['reels']:
-                for i in raw_data['reels'][str(user_id)]['items']:
-                    if i['media_type'] == ThirdPartyAPIMediaType.photo.value:
-                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo.value,
-                                               url=i['image_versions2']['candidates'][0]['url'],
-                                               created_at=i['taken_at'])
-                    if i['media_type'] == ThirdPartyAPIMediaType.video.value:
-                        story = InstagramStory(media_type=ThirdPartyAPIMediaType.video.value,
-                                               url=i['video_versions'][0]['url'],
-                                               created_at=i['taken_at'])
-
-                    # check story for sku in caption
-                    if i.get('accessibility_caption'):
-                        for kw in ('артикул', 'articul', 'sku'):
-                            if kw in i['accessibility_caption'].lower():
-                                raw_sku = i['accessibility_caption'].lower().split(kw)[1]
-                                sku = ''.join([_ for _ in raw_sku if i.isdigit()])
-                                story.sku = sku
-                                for wb in ('wb', 'вб', 'wildberries', 'вайл'):
-                                    if wb in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.wildberries
-                                for oz in ('ozon', 'озон'):
-                                    if oz in i['accessibility_caption'].lower():
-                                        story.marketplace = Marketplaces.ozon
-                                story.ad_type = AdType.text
-
-                        # check marketplace if it is not defined yet
-                        if story.sku and not story.marketplace:
-                            result = await asyncio.gather(
-                                OzonClient().check_sku(sku),
-                                WildberrisClient().check_sku(sku),
-                            )
-                            if result[0]:
-                                story.marketplace = Marketplaces.ozon
-                            elif result[1]:
-                                story.marketplace = Marketplaces.wildberries
-
-                    # check story for link
-                    if not story.sku and i.get('story_link_stickers'):
-                        url = i['story_link_stickers'][0]['story_link']['url']
-                        if 'ozon' in url or 'wildberries' in url:
-                            story.url = await self._resolve_stories_link(url)
-                            if 'ozon' in story.url:
-                                story.marketplace = Marketplaces.ozon
-                                story.sku = OzonClient.extract_sku_from_url(story.url)
-                            elif 'wildberries' in story.url:
-                                story.marketplace = Marketplaces.wildberries
-                                story.sku = WildberrisClient.extract_sku_from_url(story.url)
-                            story.ad_type = AdType.link
-
-                    if story.sku:
-                        stories_list.append(story)
-
-            return InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
-                                         username=username,
-                                         stories_list=stories_list)
         except TooManyRedirects:
             raise AccountInvalidCredentials(account=account)
         except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
@@ -165,10 +87,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     raise ProxyTooManyRequests(proxy=account.proxy)
             raise ex
 
-    async def get_account_stories_by_id_v2(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:
+    async def get_account_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:
         try:
             # get account credentials from db
-            account = await InstagramAccountsTableDBHandler.get_account()
+            async with async_session() as s:
+                account = await get_account(s)
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
@@ -185,13 +108,17 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     username = raw_data['reels'][id]['user']['username']
                     for item in raw_data['reels'][id]['items']:
                         if item['media_type'] == ThirdPartyAPIMediaType.photo.value:
-                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.photo.value,
-                                                   url=item['image_versions2']['candidates'][0]['url'],
-                                                   created_at=item['taken_at'])
+                            story = InstagramStory(
+                                media_type=ThirdPartyAPIMediaType.photo.value,
+                                url=item['image_versions2']['candidates'][0]['url'],
+                                created_at=item['taken_at'],
+                            )
                         if item['media_type'] == ThirdPartyAPIMediaType.video.value:
-                            story = InstagramStory(media_type=ThirdPartyAPIMediaType.video.value,
-                                                   url=item['video_versions'][0]['url'],
-                                                   created_at=item['taken_at'])
+                            story = InstagramStory(
+                                media_type=ThirdPartyAPIMediaType.video.value,
+                                url=item['video_versions'][0]['url'],
+                                created_at=item['taken_at'],
+                            )
                         # check story for sku in caption
                         if item.get('accessibility_caption'):
                             for kw in ('артикул', 'articul', 'sku'):
@@ -211,7 +138,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                             if story.sku and not story.marketplace:
                                 result = await asyncio.gather(
                                     OzonClient().check_sku(sku),
-                                    WildberrisClient().check_sku(sku),
+                                    WildberriesClient().check_sku(sku),
                                 )
                                 if result[0]:
                                     story.marketplace = Marketplaces.ozon
@@ -238,15 +165,17 @@ class InstagramClient(BaseThirdPartyAPIClient):
                                     story.sku = OzonClient.extract_sku_from_url(story.url)
                                 elif 'wildberries' in story.url:
                                     story.marketplace = Marketplaces.wildberries
-                                    story.sku = WildberrisClient.extract_sku_from_url(story.url)
+                                    story.sku = WildberriesClient.extract_sku_from_url(story.url)
                                 story.ad_type = AdType.link
 
                         if story.sku:
                             stories_list.append(story)
 
-                    stories_by_accounts.append(InstagramClientAnswer(source=ThirdPartyAPISource.instagram,
-                                                                     username=username,
-                                                                     stories_list=stories_list))
+                    stories_by_accounts.append(
+                        InstagramClientAnswer(
+                            source=ThirdPartyAPISource.instagram, username=username, stories_list=stories_list
+                        )
+                    )
             return stories_by_accounts
         except TooManyRedirects:
             raise AccountInvalidCredentials(account=account)
@@ -274,7 +203,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _resolve_stories_link(self, url: str) -> str:
         # get proxy
-        ozon_proxy_list = await ProxiesTableDBHandler.get_proxy_all(ProxyTypes.ozon)
+        async with async_session() as s:
+            ozon_proxy_list = await get_proxy_all(s, ProxyTypes.ozon)
         if not ozon_proxy_list:
             raise NoProxyDBError(ProxyTypes.ozon)
         proxy = ozon_proxy_list[random.randint(0, len(ozon_proxy_list) - 1)].proxy
@@ -296,14 +226,17 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     # case: redirect landing page
                     # check all links on the page
                     for l in sb.get_unique_links():
-                        if any([WildberrisClient.extract_sku_from_url(l),
-                                OzonClient.extract_sku_from_url(l)]):
+                        if any([WildberriesClient.extract_sku_from_url(l), OzonClient.extract_sku_from_url(l)]):
                             return l
                 return sb.get_current_url()
             except NoSuchElementException as ex:
                 # case: when timout occured after redirect
-                if any([WildberrisClient.extract_sku_from_url(sb.get_current_url()),
-                        OzonClient.extract_sku_from_url(sb.get_current_url())]):
+                if any(
+                    [
+                        WildberriesClient.extract_sku_from_url(sb.get_current_url()),
+                        OzonClient.extract_sku_from_url(sb.get_current_url()),
+                    ]
+                ):
                     return sb.get_current_url()
                 ex.url = sb.get_current_url()
                 raise ex

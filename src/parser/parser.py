@@ -78,7 +78,7 @@ class Parser:
         async with async_session as s:
             if not logins_list:
                 return
-            data = await self.client.get_account_stories_by_id_v2([_.user_id for _ in logins_list])
+            data = await self.client.get_account_stories_by_id([_.user_id for _ in logins_list])
             await add_result_list(s, data)
             await update_login_list(s, logins_list)
             custom_logger.info(f'{len(data)} logins are successfully updated!')
