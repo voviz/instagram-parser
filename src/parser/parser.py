@@ -19,7 +19,6 @@ from src.parser.utils import chunks
 class Parser:
     def __init__(self):
         self.client = InstagramClient()
-        self.loop = asyncio.get_event_loop()
 
     async def _retry_on_failure(self, func, *args, **kwargs):
         while True:
@@ -27,9 +26,10 @@ class Parser:
                 return await func(*args, **kwargs)
             except (NoAccountsDBError, NoProxyDBError) as ex:
                 custom_logger.warning(ex)
-                if not await add_new_accounts():
-                    custom_logger.warning('Restart after 15 min ...')
-                    await asyncio.sleep(900)
+                async with async_session() as s:
+                    if not await add_new_accounts(s):
+                        custom_logger.warning('Restart after 15 min ...')
+                        await asyncio.sleep(900)
 
     @errors_handler_decorator
     async def on_start(self) -> list[InstagramLogins]:
@@ -75,7 +75,7 @@ class Parser:
         return await self._retry_on_failure(self._internal_collect_instagram_story_data, logins_list)
 
     async def _internal_collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
-        async with async_session as s:
+        async with async_session() as s:
             if not logins_list:
                 return
             data = await self.client.get_account_stories_by_id([_.user_id for _ in logins_list])
@@ -84,7 +84,7 @@ class Parser:
             custom_logger.info(f'{len(data)} logins are successfully updated!')
 
     def sync_wrapper_ids_update(self, logins_list: list[InstagramLogins]) -> None:
-        self.loop.run_until_complete(self.get_login_ids_in_loop(logins_list))
+        asyncio.new_event_loop().run_until_complete(self.get_login_ids_in_loop(logins_list))
 
     def sync_wrapper_reels_update(self, logins_list: list[InstagramLogins]) -> None:
-        self.loop.run_until_complete(self.collect_instagram_story_data(logins_list))
+        asyncio.new_event_loop().run_until_complete(self.collect_instagram_story_data(logins_list))
