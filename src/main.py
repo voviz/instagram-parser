@@ -7,8 +7,9 @@ from src.core.logs import custom_logger
 from src.parser.parser import Parser
 from src.parser.utils import check_driver_installation, chunks
 
+
 LOGINS_CHUNK_SIZE = 30
-RESTART_WAIT_TIME = 900  # 15 minutes in seconds
+RESTART_WAIT_TIME = 900
 
 
 def main():

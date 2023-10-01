@@ -1,11 +1,11 @@
 from enum import Enum
 import json
-from typing import Any, Dict
+from typing import Any
 
 import aiohttp
 
 from src.parser.exceptions import ThirdPartyApiException
-from src.parser.proxy_handler import ProxyHandler
+from src.parser.proxy_handler import convert_to_aiohttp_format
 
 
 class BaseThirdPartyAPIClient:
@@ -15,10 +15,7 @@ class BaseThirdPartyAPIClient:
     """
 
     api_name = ''
-    headers: Dict[str, str] = {
-        'accept': '*/*',
-        'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
-    }
+    headers: dict[str, str] = {'accept': '*/*', 'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'}
     base_url = ''
 
     class HTTPMethods(Enum):
@@ -46,14 +43,13 @@ class BaseThirdPartyAPIClient:
         if cookie:
             current_headers.update({'cookie': cookie})
 
-        async with aiohttp.ClientSession(headers=current_headers) as session, \
-                session.request(
-                    method=method.value,
-                    url='/'.join((self.base_url, edge)),
-                    proxy=ProxyHandler.convert_to_aiohttp_format(proxy),
-                    params=querystring,
-                    json=payload,
-                ) as res:
+        async with aiohttp.ClientSession(headers=current_headers) as session, session.request(
+            method=method.value,
+            url='/'.join((self.base_url, edge)),
+            proxy=convert_to_aiohttp_format(proxy),
+            params=querystring,
+            json=payload,
+        ) as res:
             return await self._clean_response(res, is_json=is_json)
 
     async def _clean_response(self, res, is_json: bool) -> str:
