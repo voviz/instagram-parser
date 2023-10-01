@@ -1,5 +1,4 @@
 import asyncio
-import random
 
 import aiohttp
 from aiohttp import TooManyRedirects
@@ -8,8 +7,6 @@ from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
 from src.core.logs import custom_logger
-from src.db.connector import async_session
-from src.db.crud.proxies import get_proxy_all, ProxyTypes
 from src.parser.clients.base import BaseThirdPartyAPIClient
 from src.parser.clients.models import (
     AdType,
@@ -61,10 +58,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
 
-        except Exception as ex:  # noqa:
+        except Exception as ex:  # noqa: PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
-    async def get_account_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:
+    async def get_account_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
         try:
             account = await self._fetch_account()
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
@@ -78,10 +75,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
             stories_by_accounts = []
             if raw_data['reels']:
-                for id in raw_data['reels']:
+                for reels_id in raw_data['reels']:
                     stories_list = []
-                    username = raw_data['reels'][id]['user']['username']
-                    for item in raw_data['reels'][id]['items']:
+                    username = raw_data['reels'][reels_id]['user']['username']
+                    for item in raw_data['reels'][reels_id]['items']:
                         if not (story := self._extract_story_from_item(item)):
                             continue
 
@@ -100,7 +97,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         )
                     )
             return stories_by_accounts
-        except Exception as ex:
+        except Exception as ex:  # noqa: PIE786
             await self._handle_exceptions(ex, account=account)
 
     def _extract_story_from_item(self, item):
@@ -118,7 +115,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
         return None
 
-    async def _assign_sku_and_marketplace(self, story, caption):
+    async def _assign_sku_and_marketplace(self, story, caption):  # noqa: CCR001
         for kw in ('артикул', 'articul', 'sku'):
             if kw in caption:
                 raw_sku = caption.split(kw)[1]
@@ -142,6 +139,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _assign_story_link(self, story, link):
         try:
+            if not ('ozon' in link or 'wildberries' in link):
+                return
             story.url = await self._resolve_stories_link(link)
             if 'ozon' in story.url:
                 story.marketplace = Marketplaces.ozon
@@ -154,50 +153,51 @@ class InstagramClient(BaseThirdPartyAPIClient):
             raise ex
         except WebDriverException:
             pass
-        except Exception as ex:
+        except Exception as ex:  # noqa: PIE786
             if str(ex) != 'Retry of page load timed out after 120.0 seconds!':
                 custom_logger.error(f'{type(ex)}: {ex}')
                 custom_logger.error('url: ' + link)
 
-    async def _resolve_stories_link(self, url: str) -> str:
-        # get proxy
-        async with async_session() as s:
-            ozon_proxy_list = await get_proxy_all(s, ProxyTypes.ozon)
-        if not ozon_proxy_list:
-            raise NoProxyDBError(ProxyTypes.ozon)
-        proxy = ozon_proxy_list[random.randint(0, len(ozon_proxy_list) - 1)].proxy
-        # init client
-        with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(proxy)) as sb:
-            try:
-                sb.open(url)
-                # case: instagram redirect page
-                if sb.is_text_visible('Вы покидаете Instagram'):
-                    redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=5)
-                    if redirect_button.text == 'Перейти по ссылке':
-                        redirect_button.click()
-                # define url
-                if 'ozon.ru' in sb.get_current_url():
-                    sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
-                elif 'wildberries.ru' in sb.get_current_url():
-                    sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
-                else:
-                    # case: redirect landing page
-                    # check all links on the page
-                    for link in sb.get_unique_links():
-                        if any([WildberriesClient.extract_sku_from_url(link), OzonClient.extract_sku_from_url(link)]):
-                            return link
-                return sb.get_current_url()
-            except NoSuchElementException as ex:
-                # case: when timout occured after redirect
-                if any(
-                    [
-                        WildberriesClient.extract_sku_from_url(sb.get_current_url()),
-                        OzonClient.extract_sku_from_url(sb.get_current_url()),
-                    ]
-                ):
+    async def _resolve_stories_link(self, url: str) -> str:  # noqa: CCR001
+        account = await self._fetch_account()
+
+        def sync_resolve_stories_link(url: str, proxy: str) -> str:
+            # init client
+            with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(proxy)) as sb:
+                try:
+                    sb.open(url)
+                    # case: instagram redirect page
+                    if sb.is_text_visible('Вы покидаете Instagram'):
+                        redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=5)
+                        if redirect_button.text == 'Перейти по ссылке':
+                            redirect_button.click()
+                    # define url
+                    if 'ozon.ru' in sb.get_current_url():
+                        sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+                    elif 'wildberries.ru' in sb.get_current_url():
+                        sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
+                    else:
+                        # case: redirect landing page
+                        # check all links on the page
+                        for link in sb.get_unique_links():
+                            if any(
+                                [WildberriesClient.extract_sku_from_url(link), OzonClient.extract_sku_from_url(link)]
+                            ):
+                                return link
                     return sb.get_current_url()
-                ex.url = sb.get_current_url()
-                raise ex
+                except NoSuchElementException as ex:
+                    # case: when timout occured after redirect
+                    if any(
+                        [
+                            WildberriesClient.extract_sku_from_url(sb.get_current_url()),
+                            OzonClient.extract_sku_from_url(sb.get_current_url()),
+                        ]
+                    ):
+                        return sb.get_current_url()
+                    ex.url = sb.get_current_url()
+                    raise ex
+
+        return await asyncio.get_running_loop().run_in_executor(None, sync_resolve_stories_link, url, account.proxy)
 
     async def _handle_exceptions(self, ex, **kwargs):
 
