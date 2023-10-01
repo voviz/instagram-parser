@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 
 
@@ -18,7 +19,7 @@ class InstagramAccounts(Base, IdMixin):
     cookies = Column(String(5000))
     user_agent = Column(String(255))
     proxy = Column(String(255), nullable=True)
-    last_used_at = Column(DateTime, nullable=True)
+    last_used_at = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     daily_usage_rate = Column(Integer, default=0)
 
 
@@ -29,8 +30,8 @@ class InstagramLogins(Base, IdMixin):
     user_id = Column(BigInteger, nullable=True)
     followers = Column(BigInteger, nullable=True)
     is_exists = Column(Boolean, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=True)
+    created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
+    updated_at = Column(type_=TIMESTAMP(timezone=True), nullable=True)
 
 
 class Proxies(Base, IdMixin):
@@ -45,10 +46,10 @@ class ParserResult(Base, IdMixin):
 
     instagram_username = Column(String(255))
     marketplace = Column(String(255), nullable=True)
-    story_publication_date = Column(DateTime, nullable=True)
+    story_publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     sku = Column(BigInteger, nullable=True)
     ad_type = Column(String(255), nullable=True)
     is_checked = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
 
     __table_args__ = (UniqueConstraint('story_publication_date', 'sku'),)
