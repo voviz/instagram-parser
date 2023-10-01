@@ -1,8 +1,7 @@
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
-from src.db.connector import async_session
-from src.db.crud.instagram_accounts import get_account
+from bs4 import BeautifulSoup
+
 from src.parser.clients.base import BaseThirdPartyAPIClient
 
 
@@ -10,6 +9,7 @@ class OzonClient(BaseThirdPartyAPIClient):
     """
     A client to interact with Ozon's website, particularly for SKU checks.
     """
+
     api_name = 'OzonAPI'
     base_url = 'https://www.ozon.ru'
     NOT_FOUND_TEXT = 'найден 1 товар'
@@ -24,15 +24,14 @@ class OzonClient(BaseThirdPartyAPIClient):
         Returns:
             bool: True if SKU exists, False otherwise.
         """
-        async with async_session() as s:
-            account = await get_account(s)
+        account = await self._fetch_account()
 
         raw_data = await self.request(
             method=BaseThirdPartyAPIClient.HTTPMethods.GET,
             edge='search',
             querystring={'text': str(sku), 'from_global': 'true'},
             is_json=False,
-            user_agent=account.user_agent
+            user_agent=account.user_agent,
         )
 
         page = BeautifulSoup(raw_data, 'lxml')

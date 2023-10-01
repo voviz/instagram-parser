@@ -9,7 +9,6 @@ from seleniumbase import SB
 
 from src.core.logs import custom_logger
 from src.db.connector import async_session
-from src.db.crud.instagram_accounts import get_account
 from src.db.crud.proxies import get_proxy_all, ProxyTypes
 from src.parser.clients.base import BaseThirdPartyAPIClient
 from src.parser.clients.models import (
@@ -30,7 +29,7 @@ from src.parser.exceptions import (
     NoProxyDBError,
     ProxyTooManyRequests,
 )
-from src.parser.proxy_handler import ProxyHandler
+from src.parser.proxy_handler import convert_to_seleniumbase_format
 
 
 class InstagramClient(BaseThirdPartyAPIClient):
@@ -43,9 +42,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def get_account_info_by_user_name(self, username: str) -> InstagramClientAnswer:
         try:
-            # get account credentials from db
-            async with async_session() as s:
-                account = await get_account(s)
+            account = await self._fetch_account()
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge='users/web_profile_info',
@@ -63,35 +60,13 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 user_id=raw_data['data']['user']['id'],
                 followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
-        except TooManyRedirects:
-            raise AccountInvalidCredentials(account=account)
-        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
-            ex.proxy = account.proxy
-            raise ex
-        except Exception as ex:
-            """
-            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
-            So Exception class is used
-            """
-            if ex.__dict__.get('status'):
-                if ex.status == 400:
-                    if ex.answer['message'] == 'useragent mismatch':
-                        raise AccountInvalidCredentials(account=account)
-                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
-                        raise AccountConfirmationRequired(account=account)
-                if ex.status == 401:
-                    raise AccountTooManyRequests(account=account)
-                if ex.status == 404:
-                    raise LoginNotExist(account_name=username)
-                if ex.status == 500:
-                    raise ProxyTooManyRequests(proxy=account.proxy)
-            raise ex
+
+        except Exception as ex:  # noqa:
+            await self._handle_exceptions(ex, account=account, username=username)
 
     async def get_account_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:
         try:
-            # get account credentials from db
-            async with async_session() as s:
-                account = await get_account(s)
+            account = await self._fetch_account()
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
@@ -107,66 +82,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     stories_list = []
                     username = raw_data['reels'][id]['user']['username']
                     for item in raw_data['reels'][id]['items']:
-                        if item['media_type'] == ThirdPartyAPIMediaType.photo.value:
-                            story = InstagramStory(
-                                media_type=ThirdPartyAPIMediaType.photo.value,
-                                url=item['image_versions2']['candidates'][0]['url'],
-                                created_at=item['taken_at'],
-                            )
-                        if item['media_type'] == ThirdPartyAPIMediaType.video.value:
-                            story = InstagramStory(
-                                media_type=ThirdPartyAPIMediaType.video.value,
-                                url=item['video_versions'][0]['url'],
-                                created_at=item['taken_at'],
-                            )
-                        # check story for sku in caption
+                        if not (story := self._extract_story_from_item(item)):
+                            continue
+
                         if item.get('accessibility_caption'):
-                            for kw in ('артикул', 'articul', 'sku'):
-                                if kw in item['accessibility_caption'].lower():
-                                    raw_sku = item['accessibility_caption'].lower().split(kw)[1]
-                                    sku = ''.join([_ for _ in raw_sku if item.isdigit()])
-                                    story.sku = sku
-                                    for wb in ('wb', 'вб', 'wildberries', 'вайл'):
-                                        if wb in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.wildberries
-                                    for oz in ('ozon', 'озон'):
-                                        if oz in item['accessibility_caption'].lower():
-                                            story.marketplace = Marketplaces.ozon
-                                    story.ad_type = AdType.text
+                            await self._assign_sku_and_marketplace(story, item['accessibility_caption'].lower())
 
-                            # check marketplace if it is not defined yet
-                            if story.sku and not story.marketplace:
-                                result = await asyncio.gather(
-                                    OzonClient().check_sku(sku),
-                                    WildberriesClient().check_sku(sku),
-                                )
-                                if result[0]:
-                                    story.marketplace = Marketplaces.ozon
-                                elif result[1]:
-                                    story.marketplace = Marketplaces.wildberries
-
-                        # check story for link
-                        if not story.sku and item.get('story_link_stickers'):
-                            url = item['story_link_stickers'][0]['story_link']['url']
-                            if 'ozon' in url or 'wildberries' in url:
-                                try:
-                                    story.url = await self._resolve_stories_link(url)
-                                except NoProxyDBError as ex:
-                                    raise ex
-                                except WebDriverException:
-                                    continue
-                                except Exception as ex:
-                                    if not str(ex) == 'Retry of page load timed out after 120.0 seconds!':
-                                        custom_logger.error(f'{type(ex)}: {ex}')
-                                        custom_logger.error('url: ' + url)
-                                    continue
-                                if 'ozon' in story.url:
-                                    story.marketplace = Marketplaces.ozon
-                                    story.sku = OzonClient.extract_sku_from_url(story.url)
-                                elif 'wildberries' in story.url:
-                                    story.marketplace = Marketplaces.wildberries
-                                    story.sku = WildberriesClient.extract_sku_from_url(story.url)
-                                story.ad_type = AdType.link
+                        elif item.get('story_link_stickers'):
+                            await self._assign_story_link(story, item['story_link_stickers'][0]['story_link']['url'])
 
                         if story.sku:
                             stories_list.append(story)
@@ -177,29 +100,64 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         )
                     )
             return stories_by_accounts
-        except TooManyRedirects:
-            raise AccountInvalidCredentials(account=account)
-        except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
-            ex.proxy = account.proxy
-            raise ex
         except Exception as ex:
-            """
-            For some reason (maybe due to inheritance) cannot handle user-types of exceptions here
-            So Exception class is used
-            """
-            if ex.__dict__.get('status'):
-                if ex.status == 400:
-                    if ex.answer['message'] == 'useragent mismatch':
-                        raise AccountInvalidCredentials(account=account)
-                    if ex.answer['message'] in ('challenge_required', 'checkpoint_required'):
-                        raise AccountConfirmationRequired(account=account)
-                if ex.status == 401:
-                    raise AccountTooManyRequests(account=account)
-                if ex.status == 404:
-                    raise LoginNotExist(account_name=username)
-                if ex.status == 500:
-                    raise ProxyTooManyRequests(proxy=account.proxy)
+            await self._handle_exceptions(ex, account=account)
+
+    def _extract_story_from_item(self, item):
+        if item['media_type'] == ThirdPartyAPIMediaType.photo.value:
+            return InstagramStory(
+                media_type=ThirdPartyAPIMediaType.photo.value,
+                url=item['image_versions2']['candidates'][0]['url'],
+                created_at=item['taken_at'],
+            )
+        elif item['media_type'] == ThirdPartyAPIMediaType.video.value:
+            return InstagramStory(
+                media_type=ThirdPartyAPIMediaType.video.value,
+                url=item['video_versions'][0]['url'],
+                created_at=item['taken_at'],
+            )
+        return None
+
+    async def _assign_sku_and_marketplace(self, story, caption):
+        for kw in ('артикул', 'articul', 'sku'):
+            if kw in caption:
+                raw_sku = caption.split(kw)[1]
+                sku = ''.join([_ for _ in raw_sku if _.isdigit()])
+                story.sku = sku
+                if any(wb in caption for wb in ('wb', 'вб', 'wildberries', 'вайл')):
+                    story.marketplace = Marketplaces.wildberries
+                elif any(oz in caption for oz in ('ozon', 'озон')):
+                    story.marketplace = Marketplaces.ozon
+                story.ad_type = AdType.text
+                if not story.marketplace:
+                    result = await asyncio.gather(
+                        OzonClient().check_sku(sku),
+                        WildberriesClient().check_sku(sku),
+                    )
+                    if result[0]:
+                        story.marketplace = Marketplaces.ozon
+                    elif result[1]:
+                        story.marketplace = Marketplaces.wildberries
+                break
+
+    async def _assign_story_link(self, story, link):
+        try:
+            story.url = await self._resolve_stories_link(link)
+            if 'ozon' in story.url:
+                story.marketplace = Marketplaces.ozon
+                story.sku = OzonClient.extract_sku_from_url(story.url)
+            elif 'wildberries' in story.url:
+                story.marketplace = Marketplaces.wildberries
+                story.sku = WildberriesClient.extract_sku_from_url(story.url)
+            story.ad_type = AdType.link
+        except NoProxyDBError as ex:
             raise ex
+        except WebDriverException:
+            pass
+        except Exception as ex:
+            if str(ex) != 'Retry of page load timed out after 120.0 seconds!':
+                custom_logger.error(f'{type(ex)}: {ex}')
+                custom_logger.error('url: ' + link)
 
     async def _resolve_stories_link(self, url: str) -> str:
         # get proxy
@@ -209,7 +167,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             raise NoProxyDBError(ProxyTypes.ozon)
         proxy = ozon_proxy_list[random.randint(0, len(ozon_proxy_list) - 1)].proxy
         # init client
-        with SB(uc=True, headless2=True, proxy=ProxyHandler.convert_to_seleniumbase_format(proxy)) as sb:
+        with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(proxy)) as sb:
             try:
                 sb.open(url)
                 # case: instagram redirect page
@@ -225,9 +183,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 else:
                     # case: redirect landing page
                     # check all links on the page
-                    for l in sb.get_unique_links():
-                        if any([WildberriesClient.extract_sku_from_url(l), OzonClient.extract_sku_from_url(l)]):
-                            return l
+                    for link in sb.get_unique_links():
+                        if any([WildberriesClient.extract_sku_from_url(link), OzonClient.extract_sku_from_url(link)]):
+                            return link
                 return sb.get_current_url()
             except NoSuchElementException as ex:
                 # case: when timout occured after redirect
@@ -240,3 +198,35 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     return sb.get_current_url()
                 ex.url = sb.get_current_url()
                 raise ex
+
+    async def _handle_exceptions(self, ex, **kwargs):
+
+        if isinstance(ex, (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError)):
+            ex.proxy = kwargs['account'].proxy
+            raise ex
+
+        if isinstance(ex, TooManyRedirects):
+            raise AccountInvalidCredentials(account=kwargs['account'])
+
+        if hasattr(ex, 'status'):
+            messages = {
+                400: [
+                    ('useragent mismatch', AccountInvalidCredentials),
+                    ('challenge_required', AccountConfirmationRequired),
+                    ('checkpoint_required', AccountConfirmationRequired),
+                ],
+                401: AccountTooManyRequests,
+                404: LoginNotExist,
+                500: ProxyTooManyRequests,
+            }
+            error = messages[ex.status]
+
+            if issubclass(error, LoginNotExist):
+                raise error(account_name=kwargs['username'])
+
+            if issubclass(error, ProxyTooManyRequests):
+                raise error(proxy=kwargs['account'].proxy)
+
+            raise error(account=kwargs['account'])
+
+        raise ex
