@@ -40,7 +40,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
     api_name = 'InstagramAPI'
     base_url = 'https://www.instagram.com/api/v1'
 
-    async def get_account_info_by_user_name(self, username: str) -> InstagramClientAnswer:
+    async def get_info_by_user_name(self, username: str) -> InstagramClientAnswer:
         try:
             account = await self._fetch_account()
             raw_data = await self.request(
@@ -64,7 +64,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except Exception as ex:  # noqa: PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
-    async def get_account_posts_by_id(self, user_id: int, from_datetime: datetime = None) -> InstagramClientAnswer:
+    async def get_posts_by_id(self, user_id: int, from_datetime: datetime = None) -> InstagramClientAnswer:
         try:
             account = await self._fetch_account()
             raw_data = await self.request(

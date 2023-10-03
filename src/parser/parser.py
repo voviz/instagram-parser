@@ -53,7 +53,7 @@ class Parser:
         return await self._retry_on_failure(self._internal_get_login_id, login)
 
     async def _internal_get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
-        api_answer = await self.client.get_account_info_by_user_name(login.username)
+        api_answer = await self.client.get_info_by_user_name(login.username)
         login.user_id = api_answer.user_id
         login.followers = api_answer.followers_number
         login.is_exists = True
@@ -89,7 +89,7 @@ class Parser:
     async def _get_post_by_id(self, login: InstagramLogins) -> InstagramClientAnswer:
         # update login 'posts_updated_at' field
         login.posts_updated_at = datetime.now()
-        return await self._retry_on_failure(self.client.get_account_posts_by_id, login.user_id)
+        return await self._retry_on_failure(self.client.get_posts_by_id, login.user_id)
 
     async def get_posts_list_by_id(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
