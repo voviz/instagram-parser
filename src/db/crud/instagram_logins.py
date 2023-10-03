@@ -14,6 +14,7 @@ async def update_login(session, new_login_data: InstagramLogins) -> None:
             followers=new_login_data.followers,
             is_exists=True,
             updated_at=new_login_data.updated_at,
+            posts_updated_at=new_login_data.posts_updated_at,
         )
     )
     await session.commit()
@@ -26,7 +27,11 @@ async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
             update(InstagramLogins)
             .where(InstagramLogins.username == login.username)
             .values(
-                updated_at=login.updated_at, user_id=login.user_id, followers=login.followers, is_exists=login.is_exists
+                updated_at=login.updated_at,
+                user_id=login.user_id,
+                followers=login.followers,
+                is_exists=login.is_exists,
+                posts_updated_at=login.posts_updated_at,
             )
         )
     await session.commit()
