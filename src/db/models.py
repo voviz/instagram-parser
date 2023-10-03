@@ -32,6 +32,7 @@ class InstagramLogins(Base, IdMixin):
     is_exists = Column(Boolean, nullable=True)
     created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
     updated_at = Column(type_=TIMESTAMP(timezone=True), nullable=True)
+    posts_updated_at = Column(type_=TIMESTAMP(timezone=True), nullable=True)
 
 
 class Proxies(Base, IdMixin):
@@ -53,3 +54,16 @@ class ParserResult(Base, IdMixin):
     created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
 
     __table_args__ = (UniqueConstraint('story_publication_date', 'sku'),)
+
+
+class ParserResultPost(Base, IdMixin):
+    __tablename__ = 'parser_result_post'
+
+    instagram_username = Column(String(255))
+    publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
+    marketplace = Column(String(255), nullable=True)
+    sku = Column(BigInteger, nullable=True)
+    is_checked = Column(Boolean, default=False)
+    created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('publication_date', 'sku'),)
