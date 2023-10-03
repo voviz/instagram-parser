@@ -1,5 +1,5 @@
 import asyncio
-import traceback
+import re
 
 import aiohttp
 from selenium.common import TimeoutException, WebDriverException
@@ -19,7 +19,7 @@ from src.parser.exceptions import (
 )
 
 
-def errors_handler_decorator(func):
+def errors_handler_decorator(func):  # noqa: CCR001
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
@@ -29,9 +29,7 @@ def errors_handler_decorator(func):
             aiohttp.ClientResponseError,
             aiohttp.ServerDisconnectedError,
             aiohttp.client_exceptions.ClientProxyConnectionError,
-            ConnectionResetError,
             ConnectionError,
-            ConnectionAbortedError,
         ) as ex:
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
         except (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError) as ex:
@@ -50,10 +48,7 @@ def errors_handler_decorator(func):
             custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
         except WebDriverException as ex:
             custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
-            custom_logger.error(f'Maybe something occur with "ozon" proxy....')
-        except Exception as ex:
-            custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
-            custom_logger.error(traceback.print_exc())
+            custom_logger.error('Maybe something occur with "ozon" proxy....')
 
     return wrapper
 
@@ -74,3 +69,9 @@ async def no_proxy_db_error(ex):
     custom_logger.warning(ex)
     custom_logger.warning('Restart after 15 min ...')
     await asyncio.sleep(900)
+
+
+def find_links(text: str):
+    """Регулярное выражение для поиска URL"""
+    url_pattern = re.compile(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+    return url_pattern.findall(text)

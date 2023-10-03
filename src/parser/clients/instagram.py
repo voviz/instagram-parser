@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 
 import aiohttp
 from aiohttp import TooManyRedirects
@@ -11,12 +12,14 @@ from src.parser.clients.base import BaseThirdPartyAPIClient
 from src.parser.clients.models import (
     AdType,
     InstagramClientAnswer,
+    InstagramPost,
     InstagramStory,
     Marketplaces,
     ThirdPartyAPIMediaType,
     ThirdPartyAPISource,
 )
 from src.parser.clients.ozon import OzonClient
+from src.parser.clients.utils import find_links
 from src.parser.clients.wildberries import WildberriesClient
 from src.parser.exceptions import (
     AccountConfirmationRequired,
@@ -61,7 +64,46 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except Exception as ex:  # noqa: PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
-    async def get_account_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
+    async def get_account_posts_by_id(self, user_id: int, from_datetime: datetime = None) -> InstagramClientAnswer:
+        try:
+            account = await self._fetch_account()
+            raw_data = await self.request(
+                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                edge=f'feed/user/{user_id}',
+                querystring={'count': 100000},
+                is_json=True,
+                cookie=account.cookies,
+                user_agent=account.user_agent,
+                proxy=account.proxy,
+            )
+            posts_list = []
+            for post in raw_data['items']:
+                created_at = datetime.fromtimestamp(post['taken_at'])
+                if from_datetime and created_at > from_datetime:
+                    break
+
+                parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at, caption=post['caption']['text'])
+
+                links = find_links(post['caption']['text'])
+                parsed_post_copies = [parsed_post.copy() for _ in links]
+
+                await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
+
+                if not all(p.sku for p in parsed_post_copies):
+                    await self._extract_sku_from_caption(parsed_post, post['caption']['text'])
+
+                posts_list.extend([p for p in ([parsed_post] + parsed_post_copies) if p.sku])
+            return InstagramClientAnswer(
+                source=ThirdPartyAPISource.instagram,
+                username=raw_data['user']['username'],
+                user_id=user_id,
+                posts_list=posts_list,
+            )
+
+        except Exception as ex:  # noqa: PIE786
+            await self._handle_exceptions(ex, account=account)
+
+    async def get_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
         try:
             account = await self._fetch_account()
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
@@ -83,10 +125,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                             continue
 
                         if item.get('accessibility_caption'):
-                            await self._assign_sku_and_marketplace(story, item['accessibility_caption'].lower())
+                            await self._extract_sku_from_caption(story, item['accessibility_caption'].lower())
 
                         elif item.get('story_link_stickers'):
-                            await self._assign_story_link(story, item['story_link_stickers'][0]['story_link']['url'])
+                            await self._extract_sku_from_link(
+                                story, item['story_link_stickers'][0]['story_link']['url']
+                            )
 
                         if story.sku:
                             stories_list.append(story)
@@ -115,7 +159,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
         return None
 
-    async def _assign_sku_and_marketplace(self, story, caption):  # noqa: CCR001
+    async def _extract_sku_from_caption(self, story, caption: str):  # noqa: CCR001
+        caption = caption.lower()
         for kw in ('артикул', 'articul', 'sku'):
             if kw in caption:
                 raw_sku = caption.split(kw)[1]
@@ -137,7 +182,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         story.marketplace = Marketplaces.wildberries
                 break
 
-    async def _assign_story_link(self, story, link):
+    async def _extract_sku_from_link(self, story, link):
         try:
             if not ('ozon' in link or 'wildberries' in link):
                 return

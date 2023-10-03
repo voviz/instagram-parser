@@ -22,6 +22,7 @@ class ThirdPartyAPIMediaType(Enum):
     video = 2
     audio = 3
     gif = 4
+    carousel = 5
 
 
 class AdType(str, Enum):
@@ -52,8 +53,18 @@ class InstagramStory(BaseModel):
     ad_type: AdType = Field(default=None)
 
 
+class InstagramPost(BaseModel):
+    media_type: ThirdPartyAPIMediaType = Field(default=ThirdPartyAPIMediaType.unknown)
+    post_id: int = Field(default=None)
+    created_at: datetime = Field(default=None)
+    external_url: str = Field(default=None)
+    caption: str = Field(default=None)
+    sku: int = Field(default=None)
+    marketplace: Marketplaces = Field(default=None)
+
+
 class ThirdPartyAPIClientAnswer(BaseModel):
-    source: ThirdPartyAPISource
+    source: ThirdPartyAPISource = Field(default=ThirdPartyAPISource.instagram)
 
 
 class InstagramClientAnswer(ThirdPartyAPIClientAnswer):
@@ -65,3 +76,4 @@ class InstagramClientAnswer(ThirdPartyAPIClientAnswer):
     username: str
     followers_number: int = Field(default=None)
     stories_list: list[InstagramStory] = Field(default_factory=list)
+    posts_list: list[InstagramPost] = Field(default_factory=list)

@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import random
 
 from aiostream import pipe, stream
@@ -11,6 +12,7 @@ from src.db.crud.instagram_logins import get_login_all, update_login_list
 from src.db.crud.parser_result import add_result_list
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient
+from src.parser.clients.models import InstagramClientAnswer
 from src.parser.clients.utils import errors_handler_decorator
 from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
 from src.parser.utils import chunks
@@ -47,7 +49,7 @@ class Parser:
             return logins_for_update
 
     @errors_handler_decorator
-    async def get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
+    async def _get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
         return await self._retry_on_failure(self._internal_get_login_id, login)
 
     async def _internal_get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
@@ -58,11 +60,11 @@ class Parser:
         await asyncio.sleep(random.randint(0, settings.ID_UPDATE_PROCESS_DELAY_MAX_SEC))
         return login
 
-    async def get_login_ids_in_loop(self, logins_list: list[InstagramLogins]) -> None:
+    async def get_login_ids_list(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
             for chunk in chunks(logins_list, 100):
                 updated_logins = []
-                xs = stream.iterate(chunk) | pipe.map(self.get_login_id, ordered=True, task_limit=5)
+                xs = stream.iterate(chunk) | pipe.map(self._get_login_id, ordered=True, task_limit=5)
                 async with xs.stream() as streamer:
                     async for login in streamer:
                         if login:
@@ -70,21 +72,43 @@ class Parser:
                 await update_login_list(s, updated_logins)
                 custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
 
-    @errors_handler_decorator
-    async def collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
-        return await self._retry_on_failure(self._internal_collect_instagram_story_data, logins_list)
-
-    async def _internal_collect_instagram_story_data(self, logins_list: list[InstagramLogins]) -> None:
+    async def _internal_get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
             if not logins_list:
                 return
-            data = await self.client.get_account_stories_by_id([_.user_id for _ in logins_list])
+            data = await self.client.get_stories_by_id([_.user_id for _ in logins_list])
             await add_result_list(s, data)
             await update_login_list(s, logins_list)
             custom_logger.info(f'{len(data)} logins are successfully updated!')
 
-    def sync_wrapper_ids_update(self, logins_list: list[InstagramLogins]) -> None:
-        asyncio.new_event_loop().run_until_complete(self.get_login_ids_in_loop(logins_list))
+    @errors_handler_decorator
+    async def get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
+        return await self._retry_on_failure(self._internal_get_stories_data, logins_list)
 
-    def sync_wrapper_reels_update(self, logins_list: list[InstagramLogins]) -> None:
-        asyncio.new_event_loop().run_until_complete(self.collect_instagram_story_data(logins_list))
+    @errors_handler_decorator
+    async def _get_post_by_id(self, login: InstagramLogins) -> InstagramClientAnswer:
+        # update login 'posts_updated_at' field
+        login.posts_updated_at = datetime.now()
+        return await self._retry_on_failure(self.client.get_account_posts_by_id, login.user_id)
+
+    async def get_posts_list_by_id(self, logins_list: list[InstagramLogins]) -> None:
+        async with async_session() as s:
+            for chunk in chunks(logins_list, 100):
+                posts_data = []
+                xs = stream.iterate(chunk) | pipe.map(self._get_post_by_id, ordered=True, task_limit=5)
+                async with xs.stream() as streamer:
+                    async for data in streamer:
+                        if data:
+                            posts_data.append(data)
+
+                await update_login_list(s, logins_list)
+                custom_logger.info(f'posts for {len(posts_data)} accounts found!')
+
+    def sync_wrapper_posts_update(self, logins_list: list[InstagramLogins]) -> None:
+        asyncio.new_event_loop().run_until_complete(self.get_posts_list_by_id(logins_list))
+
+    def sync_wrapper_ids_update(self, logins_list: list[InstagramLogins]) -> None:
+        asyncio.new_event_loop().run_until_complete(self.get_login_ids_list(logins_list))
+
+    def sync_wrapper_stories_update(self, logins_list: list[InstagramLogins]) -> None:
+        asyncio.new_event_loop().run_until_complete(self.get_stories_data(logins_list))
