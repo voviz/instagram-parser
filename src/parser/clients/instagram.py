@@ -25,6 +25,7 @@ from src.parser.exceptions import (
     AccountConfirmationRequired,
     AccountInvalidCredentials,
     AccountTooManyRequests,
+    BaseParserException,
     LoginNotExist,
     NoProxyDBError,
     ProxyTooManyRequests,
@@ -61,7 +62,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
 
-        except Exception as ex:  # noqa: PIE786
+        except BaseParserException as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
     async def get_posts_by_id(self, user_id: int, from_datetime: datetime = None) -> InstagramClientAnswer:
@@ -82,15 +83,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 if from_datetime and created_at > from_datetime:
                     break
 
-                parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at, caption=post['caption']['text'])
+                caption = post['caption']['text'] if post['caption'] else ''
+                parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at, caption=caption)
+                links = find_links(caption)
 
-                links = find_links(post['caption']['text'])
                 parsed_post_copies = [parsed_post.copy() for _ in links]
-
                 await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
 
-                if not all(p.sku for p in parsed_post_copies):
-                    await self._extract_sku_from_caption(parsed_post, post['caption']['text'])
+                await self._extract_sku_from_caption(parsed_post, caption)
 
                 posts_list.extend([p for p in ([parsed_post] + parsed_post_copies) if p.sku])
             return InstagramClientAnswer(
@@ -100,7 +100,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 posts_list=posts_list,
             )
 
-        except Exception as ex:  # noqa: PIE786
+        except BaseParserException as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account)
 
     async def get_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
@@ -141,7 +141,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         )
                     )
             return stories_by_accounts
-        except Exception as ex:  # noqa: PIE786
+        except BaseParserException as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account)
 
     def _extract_story_from_item(self, item):

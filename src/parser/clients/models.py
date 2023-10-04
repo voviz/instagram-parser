@@ -61,6 +61,7 @@ class InstagramPost(BaseModel):
     caption: str = Field(default=None)
     sku: int = Field(default=None)
     marketplace: Marketplaces = Field(default=None)
+    ad_type: AdType = Field(default=None)
 
 
 class ThirdPartyAPIClientAnswer(BaseModel):

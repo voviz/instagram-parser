@@ -48,7 +48,7 @@ class BaseThirdPartyAPIClient:
         async with aiohttp.ClientSession(headers=current_headers) as session, session.request(
             method=method.value,
             url='/'.join((self.base_url, edge)),
-            proxy=convert_to_aiohttp_format(proxy),
+            proxy=convert_to_aiohttp_format(proxy) if proxy else None,
             params=querystring,
             json=payload,
         ) as res:
