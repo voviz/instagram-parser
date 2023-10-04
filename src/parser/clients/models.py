@@ -47,7 +47,6 @@ class InstagramStory(BaseModel):
     media_type: ThirdPartyAPIMediaType = Field(default=ThirdPartyAPIMediaType.unknown)
     url: str
     created_at: datetime = Field(default=None)
-    external_url: str = Field(default=None)
     sku: int = Field(default=None)
     marketplace: Marketplaces = Field(default=None)
     ad_type: AdType = Field(default=None)
@@ -57,7 +56,7 @@ class InstagramPost(BaseModel):
     media_type: ThirdPartyAPIMediaType = Field(default=ThirdPartyAPIMediaType.unknown)
     post_id: int = Field(default=None)
     created_at: datetime = Field(default=None)
-    external_url: str = Field(default=None)
+    url: str = Field(default=None)
     caption: str = Field(default=None)
     sku: int = Field(default=None)
     marketplace: Marketplaces = Field(default=None)

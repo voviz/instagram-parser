@@ -1,8 +1,10 @@
 from urllib.parse import parse_qs, urlparse
 
-from bs4 import BeautifulSoup
+from selenium.webdriver.common.by import By
+from seleniumbase import SB
 
 from src.parser.clients.base import BaseThirdPartyAPIClient
+from src.parser.proxy_handler import convert_to_seleniumbase_format
 
 
 class OzonClient(BaseThirdPartyAPIClient):
@@ -26,18 +28,13 @@ class OzonClient(BaseThirdPartyAPIClient):
         """
         account = await self._fetch_account()
 
-        raw_data = await self.request(
-            method=BaseThirdPartyAPIClient.HTTPMethods.GET,
-            edge='search',
-            querystring={'text': str(sku), 'from_global': 'true'},
-            is_json=False,
-            user_agent=account.user_agent,
-        )
+        # init client
+        with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(account.proxy)) as sb:
+            sb.open(self.base_url + '/search/' + f'?text={sku}&from_global=true')
+            sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+            page = sb.driver.page_source
 
-        page = BeautifulSoup(raw_data, 'lxml')
-        find_header = page.find(class_='yu6')
-
-        return bool(find_header and self.FOUND_TEXT in find_header.text.lower())
+        return bool(self.FOUND_TEXT in page.text.lower())
 
     @staticmethod
     def extract_sku_from_url(url: str) -> int | None:

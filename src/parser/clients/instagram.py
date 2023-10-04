@@ -26,6 +26,7 @@ from src.parser.exceptions import (
     AccountInvalidCredentials,
     AccountTooManyRequests,
     BaseParserException,
+    ClosedAccountError,
     LoginNotExist,
     NoProxyDBError,
     ProxyTooManyRequests,
@@ -101,7 +102,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
 
         except BaseParserException as ex:  # : PIE786
-            await self._handle_exceptions(ex, account=account)
+            await self._handle_exceptions(ex, account=account, user_id=user_id)
 
     async def get_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
         try:
@@ -172,14 +173,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     story.marketplace = Marketplaces.ozon
                 story.ad_type = AdType.text
                 if not story.marketplace:
-                    result = await asyncio.gather(
-                        OzonClient().check_sku(sku),
-                        WildberriesClient().check_sku(sku),
-                    )
+                    result = (await WildberriesClient().check_sku(sku),)
                     if result[0]:
-                        story.marketplace = Marketplaces.ozon
-                    elif result[1]:
                         story.marketplace = Marketplaces.wildberries
+                    else:
+                        story.marketplace = Marketplaces.ozon
                 break
 
     async def _extract_sku_from_link(self, story, link):
@@ -255,16 +253,23 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
         if hasattr(ex, 'status'):
             messages = {
-                400: [
-                    ('useragent mismatch', AccountInvalidCredentials),
-                    ('challenge_required', AccountConfirmationRequired),
-                    ('checkpoint_required', AccountConfirmationRequired),
-                ],
+                400: {
+                    'useragent mismatch': AccountInvalidCredentials,
+                    'challenge_required': AccountConfirmationRequired,
+                    'checkpoint_required': AccountConfirmationRequired,
+                    'Not authorized to view user': ClosedAccountError,
+                },
                 401: AccountTooManyRequests,
                 404: LoginNotExist,
                 500: ProxyTooManyRequests,
             }
+
             error = messages[ex.status]
+            if ex.status == 400:
+                error = error[ex.answer['message']]
+
+            if issubclass(error, ClosedAccountError):
+                raise error(user_id=kwargs['user_id'])
 
             if issubclass(error, LoginNotExist):
                 raise error(account_name=kwargs['username'])
