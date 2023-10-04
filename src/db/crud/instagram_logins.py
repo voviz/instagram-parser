@@ -21,19 +21,14 @@ async def update_login(session, new_login_data: InstagramLogins) -> None:
 
 
 async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
+    raw_mappings = []
     for login in login_list:
         login.updated_at = datetime.now()
-        await session.execute(
-            update(InstagramLogins)
-            .where(InstagramLogins.username == login.username)
-            .values(
-                updated_at=login.updated_at,
-                user_id=login.user_id,
-                followers=login.followers,
-                is_exists=login.is_exists,
-                posts_updated_at=login.posts_updated_at,
-            )
-        )
+        login_mapping = dict(login.__dict__)
+        login_mapping.pop('_sa_instance_state', None)
+        raw_mappings.append(login_mapping)
+
+    await session.execute(update(InstagramLogins), raw_mappings)
     await session.commit()
 
 

@@ -103,7 +103,7 @@ class Parser:
                             posts_data.append(data)
                 await add_posts_result_list(s, posts_data)
                 await update_login_list(s, logins_list)
-                custom_logger.info(f'{len(posts_data)} posts with sku found!')
+                custom_logger.info(f'{len([p for p in posts_data if p.posts_list])} posts with sku found!')
 
     def sync_wrapper_posts_update(self, logins_list: list[InstagramLogins]) -> None:
         asyncio.new_event_loop().run_until_complete(self.get_posts_list_by_id(logins_list))
