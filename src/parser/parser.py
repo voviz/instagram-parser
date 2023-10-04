@@ -10,6 +10,7 @@ from src.db.connector import async_session
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
 from src.db.crud.instagram_logins import get_login_all, update_login_list
 from src.db.crud.parser_result import add_result_list
+from src.db.crud.parser_result_posts import add_posts_result_list
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient
 from src.parser.clients.models import InstagramClientAnswer
@@ -100,7 +101,7 @@ class Parser:
                     async for data in streamer:
                         if data:
                             posts_data.append(data)
-
+                await add_posts_result_list(s, posts_data)
                 await update_login_list(s, logins_list)
                 custom_logger.info(f'posts for {len(posts_data)} accounts found!')
 

@@ -4,7 +4,7 @@ from src.db.models import ParserResultPost
 from src.parser.clients.models import InstagramClientAnswer
 
 
-async def add_result_list(session, result_list: list[InstagramClientAnswer]) -> None:
+async def add_posts_result_list(session, result_list: list[InstagramClientAnswer]) -> None:
     db_values_list = []
     for result in result_list:
         if result.stories_list:
