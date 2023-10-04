@@ -80,7 +80,7 @@ class Parser:
             data = await self.client.get_stories_by_id([_.user_id for _ in logins_list])
             await add_result_list(s, data)
             await update_login_list(s, logins_list)
-            custom_logger.info(f'{len(data)} logins are successfully updated!')
+            custom_logger.info(f'{len(data)} stories with sku found!')
 
     @errors_handler_decorator
     async def get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
@@ -103,7 +103,7 @@ class Parser:
                             posts_data.append(data)
                 await add_posts_result_list(s, posts_data)
                 await update_login_list(s, logins_list)
-                custom_logger.info(f'posts for {len(posts_data)} accounts found!')
+                custom_logger.info(f'{len(posts_data)} posts with sku found!')
 
     def sync_wrapper_posts_update(self, logins_list: list[InstagramLogins]) -> None:
         asyncio.new_event_loop().run_until_complete(self.get_posts_list_by_id(logins_list))

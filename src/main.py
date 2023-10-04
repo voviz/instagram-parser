@@ -36,11 +36,13 @@ def process_logins(logins_for_update, parser):
         logins_with_id_chunks = list(chunks(logins_with_id, LOGINS_CHUNK_SIZE))
         logins_without_id = [login for login in logins_for_update if not login.user_id]
 
-        futures_reels = [executor.submit(parser.sync_wrapper_stories_update, chunk) for chunk in logins_with_id_chunks]
+        futures_stories = [
+            executor.submit(parser.sync_wrapper_stories_update, chunk) for chunk in logins_with_id_chunks
+        ]
         future_ids = executor.submit(parser.sync_wrapper_ids_update, logins_without_id)
-        future_stories = executor.submit(parser.sync_wrapper_stories_update, logins_with_id)
+        future_posts = executor.submit(parser.sync_wrapper_posts_update, logins_with_id)
 
-        all_futures = futures_reels + [future_ids, future_stories]
+        all_futures = futures_stories + [future_ids, future_posts]
 
         for future in concurrent.futures.as_completed(all_futures):
             try:
