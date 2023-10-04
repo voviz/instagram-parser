@@ -12,7 +12,7 @@ class OzonClient(BaseThirdPartyAPIClient):
 
     api_name = 'OzonAPI'
     base_url = 'https://www.ozon.ru'
-    NOT_FOUND_TEXT = 'найден 1 товар'
+    FOUND_TEXT = 'найден 1 товар'
 
     async def check_sku(self, sku: int) -> bool:
         """
@@ -37,7 +37,7 @@ class OzonClient(BaseThirdPartyAPIClient):
         page = BeautifulSoup(raw_data, 'lxml')
         find_header = page.find(class_='yu6')
 
-        return bool(find_header and self.NOT_FOUND_TEXT not in find_header.text.lower())
+        return bool(find_header and self.FOUND_TEXT in find_header.text.lower())
 
     @staticmethod
     def extract_sku_from_url(url: str) -> int | None:
