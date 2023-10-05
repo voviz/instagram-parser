@@ -78,11 +78,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 user_agent=account.user_agent,
                 proxy=account.proxy,
             )
-            posts_list = []
-            for post in raw_data['items']:
+
+            async def process_post(post):
                 created_at = datetime.fromtimestamp(post['taken_at'])
                 if from_datetime and created_at > from_datetime:
-                    break
+                    return []
 
                 caption = post['caption']['text'] if post['caption'] else ''
                 parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at, caption=caption)
@@ -93,12 +93,17 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                 await self._extract_sku_from_caption(parsed_post, caption)
 
-                posts_list.extend([p for p in ([parsed_post] + parsed_post_copies) if p.sku])
+                return [p for p in ([parsed_post] + parsed_post_copies) if p.sku]
+
+            result = await asyncio.gather(*[process_post(p) for p in raw_data['items']])
+
+            result_list = [i for sublist in result for i in sublist]
+
             return InstagramClientAnswer(
                 source=ThirdPartyAPISource.instagram,
                 username=raw_data['user']['username'],
                 user_id=user_id,
-                posts_list=posts_list,
+                posts_list=result_list,
             )
 
         except BaseParserException as ex:  # : PIE786
@@ -173,8 +178,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     story.marketplace = Marketplaces.ozon
                 story.ad_type = AdType.text
                 if not story.marketplace:
-                    result = (await WildberriesClient().check_sku(sku),)
-                    if result[0]:
+                    result = await WildberriesClient().check_sku(sku)
+                    if result:
                         story.marketplace = Marketplaces.wildberries
                     else:
                         story.marketplace = Marketplaces.ozon
