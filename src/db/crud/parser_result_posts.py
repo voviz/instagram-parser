@@ -1,4 +1,4 @@
-from sqlalchemy import insert
+from sqlalchemy.dialects.postgresql import insert
 
 from src.db.models import ParserResultPost
 from src.parser.clients.models import InstagramClientAnswer
@@ -14,7 +14,7 @@ async def add_posts_result_list(session, result_list: list[InstagramClientAnswer
                         'instagram_username': result.username,
                         'marketplace': post.marketplace.value,
                         'publication_date': post.created_at,
-                        'sku': post.sku,
+                        'sku': int(post.sku),
                     }
                 )
 
