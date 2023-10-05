@@ -7,14 +7,14 @@ from src.parser.clients.models import InstagramClientAnswer
 async def add_posts_result_list(session, result_list: list[InstagramClientAnswer]) -> None:
     db_values_list = []
     for result in result_list:
-        if result.stories_list:
-            for story in result.posts_list:
+        if result.posts_list:
+            for post in result.posts_list:
                 db_values_list.append(
                     {
                         'instagram_username': result.username,
-                        'marketplace': story.marketplace.value,
-                        'publication_date': story.created_at,
-                        'sku': story.sku,
+                        'marketplace': post.marketplace.value,
+                        'publication_date': post.created_at,
+                        'sku': post.sku,
                     }
                 )
 

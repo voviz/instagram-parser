@@ -94,7 +94,7 @@ class Parser:
 
     async def get_posts_list_by_id(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
-            for chunk in chunks(logins_list, 100):
+            for chunk in chunks(logins_list, 10):
                 posts_data = []
                 xs = stream.iterate(chunk) | pipe.map(self._get_post_by_id, ordered=True, task_limit=5)
                 async with xs.stream() as streamer:
@@ -102,7 +102,7 @@ class Parser:
                         if data:
                             posts_data.append(data)
                 await add_posts_result_list(s, posts_data)
-                await update_login_list(s, logins_list)
+                await update_login_list(s, chunk)
                 custom_logger.info(f'{len([p for p in posts_data if p.posts_list])} posts with sku found!')
 
     def sync_wrapper_posts_update(self, logins_list: list[InstagramLogins]) -> None:
