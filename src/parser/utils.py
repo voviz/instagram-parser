@@ -10,15 +10,10 @@ from src.core.logs import custom_logger
 from src.db.connector import async_session
 from src.db.crud.instagram_accounts import delete_account
 from src.db.crud.instagram_logins import mark_as_not_exists
-from src.parser.exceptions import (
-    AccountConfirmationRequired,
-    AccountInvalidCredentials,
-    AccountTooManyRequests,
-    LoginNotExistError,
-    NoProxyDBError,
-    ProxyTooManyRequests,
-    ThirdPartyApiException,
-)
+from src.db.exceptions import NoProxyDBError
+from src.parser.clients.exceptions import AccountInvalidCredentials, LoginNotExistError, ThirdPartyApiException, \
+    AccountConfirmationRequired, AccountTooManyRequests
+from src.parser.proxy.exceptions import ProxyTooManyRequests
 
 
 def check_driver_installation() -> None:

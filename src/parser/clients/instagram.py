@@ -9,7 +9,10 @@ from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
 from src.core.logs import custom_logger
+from src.db.exceptions import NoProxyDBError
 from src.parser.clients.base import BaseThirdPartyAPIClient
+from src.parser.clients.exceptions import LoginNotExistError, AccountInvalidCredentials, AccountConfirmationRequired, \
+    ClosedAccountError, AccountTooManyRequests
 from src.parser.clients.models import (
     AdType,
     InstagramClientAnswer,
@@ -22,17 +25,9 @@ from src.parser.clients.models import (
 from src.parser.clients.ozon import OzonClient
 from src.parser.clients.utils import find_links
 from src.parser.clients.wildberries import WildberriesClient
-from src.parser.exceptions import (
-    AccountConfirmationRequired,
-    AccountInvalidCredentials,
-    AccountTooManyRequests,
-    BaseParserException,
-    ClosedAccountError,
-    LoginNotExistError,
-    NoProxyDBError,
-    ProxyTooManyRequests,
-)
-from src.parser.proxy_handler import convert_to_seleniumbase_format
+from src.exceptions import BaseParserException
+from src.parser.proxy.exceptions import ProxyTooManyRequests
+from src.parser.proxy.proxy_handler import convert_to_seleniumbase_format
 
 
 class InstagramClient(BaseThirdPartyAPIClient):

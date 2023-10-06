@@ -9,7 +9,7 @@ from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.crud.proxies import get_proxy_all, ProxyTypes
 from src.db.models import InstagramAccounts
-from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
+from src.db.exceptions import NoAccountsDBError, NoProxyDBError
 
 
 async def get_accounts_all(session: AsyncSession) -> list[InstagramAccounts]:

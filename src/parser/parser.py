@@ -8,10 +8,10 @@ from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_dai
 from src.db.crud.instagram_logins import get_login_all, update_login_list
 from src.db.crud.parser_result import add_result_list
 from src.db.crud.parser_result_posts import add_posts_result_list
+from src.db.exceptions import NoAccountsDBError, NoProxyDBError
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient
 from src.parser.clients.models import InstagramClientAnswer
-from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
 from src.parser.utils import chunks, errors_handler_decorator
 
 

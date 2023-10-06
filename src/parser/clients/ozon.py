@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
 from src.parser.clients.base import BaseThirdPartyAPIClient
-from src.parser.proxy_handler import convert_to_seleniumbase_format
+from src.parser.proxy.proxy_handler import convert_to_seleniumbase_format
 
 
 class OzonClient(BaseThirdPartyAPIClient):

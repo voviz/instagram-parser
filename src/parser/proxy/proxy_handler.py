@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from src.parser.exceptions import InvalidProxyFormatError
+from src.parser.proxy.exceptions import InvalidProxyFormatError
 
 
 def _split_proxy(proxy: str) -> tuple:

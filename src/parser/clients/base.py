@@ -6,8 +6,8 @@ import aiohttp
 
 from src.db.connector import async_session
 from src.db.crud.instagram_accounts import get_account
-from src.parser.exceptions import ThirdPartyApiException
-from src.parser.proxy_handler import convert_to_aiohttp_format
+from src.parser.clients.exceptions import ThirdPartyApiException
+from src.parser.proxy.proxy_handler import convert_to_aiohttp_format
 
 
 class BaseThirdPartyAPIClient:
