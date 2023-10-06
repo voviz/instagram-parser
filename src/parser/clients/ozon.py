@@ -1,10 +1,10 @@
+import re
 from urllib.parse import parse_qs, urlparse
 
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
 from src.parser.clients.base import BaseThirdPartyAPIClient
-from src.parser.proxy.proxy_handler import convert_to_seleniumbase_format
 
 
 class OzonClient(BaseThirdPartyAPIClient):
@@ -14,7 +14,7 @@ class OzonClient(BaseThirdPartyAPIClient):
 
     api_name = 'OzonAPI'
     base_url = 'https://www.ozon.ru'
-    FOUND_TEXT = 'найден 1 товар'
+    FOUND_TEXT_PATTERN = r'найден[оа]? (\d+) товар[аов]?'
 
     async def check_sku(self, sku: int) -> bool:
         """
@@ -26,15 +26,11 @@ class OzonClient(BaseThirdPartyAPIClient):
         Returns:
             bool: True if SKU exists, False otherwise.
         """
-        account = await self._fetch_account()
-
-        # init client
-        with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(account.proxy)) as sb:
+        with SB(uc=True, headless2=True) as sb:
             sb.open(self.base_url + '/search/' + f'?text={sku}&from_global=true')
             sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
             page = sb.driver.page_source
-
-        return bool(self.FOUND_TEXT in page.text.lower())
+        return bool(re.findall(self.FOUND_TEXT_PATTERN, page))
 
     @staticmethod
     def extract_sku_from_url(url: str) -> int | None:
