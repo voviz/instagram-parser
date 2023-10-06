@@ -1,6 +1,6 @@
 import asyncio
-import re
 from datetime import datetime
+import re
 
 import aiohttp
 from aiohttp import TooManyRedirects
@@ -96,7 +96,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                 return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
 
-            result = await asyncio.gather(*[process_post(p) for p in raw_data['items']])
+            result = await asyncio.gather(*(process_post(p) for p in raw_data['items']))
 
             result_list = [i for sublist in result for i in sublist]
 
@@ -132,7 +132,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                             continue
 
                         if item.get('accessibility_caption'):
-                            story_list = await self._extract_sku_from_caption(story, item['accessibility_caption'].lower())
+                            story_list = await self._extract_sku_from_caption(
+                                story, item['accessibility_caption'].lower()
+                            )
                             stories_list.extend(story_list)
 
                         elif item.get('story_link_stickers'):
@@ -167,8 +169,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
         return None
 
-    async def _extract_sku_from_caption(self, item: InstagramStory | InstagramPost, caption: str) -> list[
-        InstagramStory | InstagramPost]:  # noqa: CCR001
+    async def _extract_sku_from_caption(
+        self, item: InstagramStory | InstagramPost, caption: str
+    ) -> list[InstagramStory | InstagramPost]:  # : CCR001
         caption = caption.lower()
 
         keywords = ('артикул', 'sku', 'articul')
@@ -239,18 +242,17 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         # check all links on the page
                         for link in sb.get_unique_links():
                             if any(
-                                    [WildberriesClient.extract_sku_from_url(link),
-                                     OzonClient.extract_sku_from_url(link)]
+                                [WildberriesClient.extract_sku_from_url(link), OzonClient.extract_sku_from_url(link)]
                             ):
                                 return link
                     return sb.get_current_url()
                 except NoSuchElementException as ex:
                     # case: when timout occured after redirect
                     if any(
-                            [
-                                WildberriesClient.extract_sku_from_url(sb.get_current_url()),
-                                OzonClient.extract_sku_from_url(sb.get_current_url()),
-                            ]
+                        [
+                            WildberriesClient.extract_sku_from_url(sb.get_current_url()),
+                            OzonClient.extract_sku_from_url(sb.get_current_url()),
+                        ]
                     ):
                         return sb.get_current_url()
                     ex.url = sb.get_current_url()

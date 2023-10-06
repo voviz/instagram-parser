@@ -36,7 +36,7 @@ def chunks(lst: list, n: int):
     @return: iterator
     """
     for i in range(0, len(lst), n):
-        yield lst[i: i + n]
+        yield lst[i : i + n]
 
 
 def errors_handler_decorator(func):  # noqa: CCR001
@@ -44,12 +44,12 @@ def errors_handler_decorator(func):  # noqa: CCR001
         try:
             return await func(*args, **kwargs)
         except (
-                asyncio.TimeoutError,
-                aiohttp.ClientOSError,
-                aiohttp.ClientResponseError,
-                aiohttp.ServerDisconnectedError,
-                aiohttp.client_exceptions.ClientProxyConnectionError,
-                ConnectionError,
+            asyncio.TimeoutError,
+            aiohttp.ClientOSError,
+            aiohttp.ClientResponseError,
+            aiohttp.ServerDisconnectedError,
+            aiohttp.client_exceptions.ClientProxyConnectionError,
+            ConnectionError,
         ) as ex:
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
             await asyncio.sleep(random.randint(2, 5))

@@ -1,6 +1,6 @@
 import asyncio
-import random
 from datetime import datetime
+import random
 
 from src.core.logs import custom_logger
 from src.db.connector import async_session

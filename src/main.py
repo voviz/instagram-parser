@@ -7,6 +7,7 @@ from src.core.logs import custom_logger
 from src.parser.parser import Parser
 from src.parser.utils import check_driver_installation
 
+
 RESTART_WAIT_TIME = 900
 
 
