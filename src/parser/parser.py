@@ -2,7 +2,6 @@ import asyncio
 import random
 from datetime import datetime
 
-from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.connector import async_session
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
@@ -12,13 +11,13 @@ from src.db.crud.parser_result_posts import add_posts_result_list
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient
 from src.parser.clients.models import InstagramClientAnswer
-from src.parser.clients.utils import errors_handler_decorator
 from src.parser.exceptions import NoAccountsDBError, NoProxyDBError
-from src.parser.utils import chunks
+from src.parser.utils import chunks, errors_handler_decorator
 
 
 class Parser:
     LOGINS_CHUNK_SIZE = 30
+    MAX_SLEEP_FOR_COROUTINE = 1
 
     def __init__(self):
         self.client = InstagramClient()
@@ -49,17 +48,16 @@ class Parser:
             custom_logger.info(f'{len(logins_for_update)} logins for update found!')
             return logins_for_update
 
-    @errors_handler_decorator
-    async def _get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
-        return await self._retry_on_failure(self._internal_get_login_id, login)
-
     async def _internal_get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
         api_answer = await self.client.get_info_by_user_name(login.username)
         login.user_id = api_answer.user_id
         login.followers = api_answer.followers_number
         login.is_exists = True
-        await asyncio.sleep(random.randint(0, settings.ID_UPDATE_PROCESS_DELAY_MAX_SEC))
         return login
+
+    @errors_handler_decorator
+    async def _get_login_id(self, login: InstagramLogins) -> InstagramLogins | None:
+        return await self._retry_on_failure(self._internal_get_login_id, login)
 
     async def get_login_ids_list(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
@@ -71,6 +69,7 @@ class Parser:
                     async with semaphore:
                         if updated_login := await self._get_login_id(login):
                             updated_logins.append(updated_login)
+                        await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
                 tasks = [process_login(login) for login in chunk]
                 await asyncio.gather(*tasks)
@@ -88,6 +87,7 @@ class Parser:
                     await add_result_list(s, data)
                     await update_login_list(s, logins_list)
                     custom_logger.info(f'{len(data)} stories with sku found!')
+            await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
         self.semaphore = asyncio.Semaphore(10)
         await asyncio.gather(*(process_login(chunk) for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
@@ -108,8 +108,9 @@ class Parser:
                 posts_data = []
 
                 async def process_login(login):
-                    if data := self._get_post_by_id(login):
+                    if data := await self._get_post_by_id(login):
                         posts_data.append(data)
+                    await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
                 tasks = [process_login(login) for login in chunk]
                 await asyncio.gather(*tasks)
