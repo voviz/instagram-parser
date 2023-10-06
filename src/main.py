@@ -5,10 +5,8 @@ import time
 from src.core.config import settings
 from src.core.logs import custom_logger
 from src.parser.parser import Parser
-from src.parser.utils import check_driver_installation, chunks
+from src.parser.utils import check_driver_installation
 
-
-LOGINS_CHUNK_SIZE = 30
 RESTART_WAIT_TIME = 900
 
 
@@ -33,18 +31,13 @@ def main():
 def process_logins(logins_for_update, parser):
     with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
         logins_with_id = [login for login in logins_for_update if login.user_id]
-        logins_with_id_chunks = list(chunks(logins_with_id, LOGINS_CHUNK_SIZE))
         logins_without_id = [login for login in logins_for_update if not login.user_id]
 
-        futures_stories = [
-            executor.submit(parser.sync_wrapper_stories_update, chunk) for chunk in logins_with_id_chunks
-        ]
+        futures_stories = executor.submit(parser.sync_wrapper_stories_update, logins_with_id)
         future_ids = executor.submit(parser.sync_wrapper_ids_update, logins_without_id)
         future_posts = executor.submit(parser.sync_wrapper_posts_update, logins_with_id)
 
-        all_futures = futures_stories + [future_ids, future_posts]
-
-        for future in concurrent.futures.as_completed(all_futures):
+        for future in concurrent.futures.as_completed((future_ids, future_posts, futures_stories)):
             try:
                 future.result()
             except Exception as e:  # noqa: PIE786

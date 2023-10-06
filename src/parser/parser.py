@@ -20,6 +20,8 @@ from src.parser.utils import chunks
 
 
 class Parser:
+    LOGINS_CHUNK_SIZE = 30
+
     def __init__(self):
         self.client = InstagramClient()
 
@@ -74,15 +76,20 @@ class Parser:
                 custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
 
     async def _internal_get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
-        async with async_session() as s:
-            if not logins_list:
-                return
-            data = await self.client.get_stories_by_id([_.user_id for _ in logins_list])
-            await add_result_list(s, data)
-            await update_login_list(s, logins_list)
-            custom_logger.info(f'{len(data)} stories with sku found!')
+        @errors_handler_decorator
+        async def process_login(logins_list: list[InstagramLogins]):
+            async with self.semaphore:
+                async with async_session() as s:
+                    if not logins_list:
+                        return
+                    data = await self.client.get_stories_by_id([_.user_id for _ in logins_list])
+                    await add_result_list(s, data)
+                    await update_login_list(s, logins_list)
+                    custom_logger.info(f'{len(data)} stories with sku found!')
 
-    @errors_handler_decorator
+        self.semaphore = asyncio.Semaphore(30)
+        await asyncio.gather(*(process_login(chunk) for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
+
     async def get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
         return await self._retry_on_failure(self._internal_get_stories_data, logins_list)
 
