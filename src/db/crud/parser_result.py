@@ -13,7 +13,7 @@ async def add_result_list(session, result_list: list[InstagramClientAnswer]) -> 
                     {
                         'instagram_username': result.username,
                         'marketplace': story.marketplace.value,
-                        'publication_date': story.created_at,
+                        'story_publication_date': story.created_at,
                         'sku': story.sku,
                         'ad_type': story.ad_type.value,
                     }
