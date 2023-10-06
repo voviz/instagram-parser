@@ -50,10 +50,16 @@ async def get_login_all(session) -> list[InstagramLogins]:
     return not_updated_logins
 
 
-async def mark_as_not_exists(session, username: str) -> None:
-    await session.execute(
-        update(InstagramLogins)
-        .where(InstagramLogins.username == username)
-        .values(is_exists=False, updated_at=datetime.now())
-    )
+async def mark_as_not_exists(session, username: str = None, user_id: int = None) -> None:
+    if username:
+        query = (update(InstagramLogins)
+                 .where(InstagramLogins.username == username)
+                 .values(is_exists=False, updated_at=datetime.now()))
+    else:
+        query = (
+            update(InstagramLogins)
+            .where(InstagramLogins.user_id == user_id)
+            .values(is_exists=False, updated_at=datetime.now())
+        )
+    await session.execute(query)
     await session.commit()

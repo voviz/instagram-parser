@@ -28,7 +28,7 @@ from src.parser.exceptions import (
     AccountTooManyRequests,
     BaseParserException,
     ClosedAccountError,
-    LoginNotExist,
+    LoginNotExistError,
     NoProxyDBError,
     ProxyTooManyRequests,
 )
@@ -56,7 +56,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 proxy=account.proxy,
             )
             if not raw_data['data']['user']:
-                raise LoginNotExist(account_name=username)
+                raise LoginNotExistError(username=username)
             return InstagramClientAnswer(
                 source=ThirdPartyAPISource.instagram,
                 username=username,
@@ -79,6 +79,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 user_agent=account.user_agent,
                 proxy=account.proxy,
             )
+
+            if not raw_data.get('user'):
+                raise LoginNotExistError(user_id=user_id)
 
             async def process_post(post):
                 created_at = datetime.fromtimestamp(post['taken_at'])
@@ -278,7 +281,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     'Not authorized to view user': ClosedAccountError,
                 },
                 401: AccountTooManyRequests,
-                404: LoginNotExist,
+                404: LoginNotExistError,
                 500: ProxyTooManyRequests,
             }
 
@@ -289,7 +292,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
             if issubclass(error, ClosedAccountError):
                 raise error(user_id=kwargs['user_id'])
 
-            if issubclass(error, LoginNotExist):
+            if issubclass(error, LoginNotExistError):
                 raise error(account_name=kwargs['username'])
 
             if issubclass(error, ProxyTooManyRequests):

@@ -21,12 +21,16 @@ class ThirdPartyApiException(BaseParserException):
         return f'{self.api_name} non-200 response. Status [{self.status}]: {self.answer}'
 
 
-class LoginNotExist(ThirdPartyApiException):
-    def __init__(self, account_name: str):
-        self.account_name = account_name
+class LoginNotExistError(ThirdPartyApiException):
+    def __init__(self, username: str = None, user_id: int = None):
+        self.username = username
+        self.user_id = user_id
 
     def __str__(self):
-        return f'Login not exist: {self.account_name}'
+        if self.user_id:
+            return f'Login with id "{self.user_id}" does not exist'
+        if self.username:
+            return f'Login with username {self.username} does not exist'
 
 
 class AccountConfirmationRequired(ThirdPartyApiException):

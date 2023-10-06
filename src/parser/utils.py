@@ -14,7 +14,7 @@ from src.parser.exceptions import (
     AccountConfirmationRequired,
     AccountInvalidCredentials,
     AccountTooManyRequests,
-    LoginNotExist,
+    LoginNotExistError,
     NoProxyDBError,
     ProxyTooManyRequests,
     ThirdPartyApiException,
@@ -61,7 +61,7 @@ def errors_handler_decorator(func):  # noqa: CCR001
             await asyncio.sleep(random.randint(2, 5))
         except (AccountInvalidCredentials, AccountConfirmationRequired, AccountTooManyRequests) as ex:
             await account_errors(ex)
-        except LoginNotExist as ex:
+        except LoginNotExistError as ex:
             await login_errors(ex)
         except ProxyTooManyRequests as ex:
             custom_logger.warning(ex)
@@ -88,8 +88,8 @@ async def account_errors(ex):
 
 async def login_errors(ex):
     async with async_session() as s:
-        await mark_as_not_exists(s, ex.account_name)
-    custom_logger.warning(ex)
+        await mark_as_not_exists(s, username=ex.username, user_id=ex.user_id)
+    custom_logger.error(ex)
 
 
 async def no_proxy_db_error(ex):
