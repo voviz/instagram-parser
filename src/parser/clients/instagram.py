@@ -168,7 +168,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
         return None
 
     async def _extract_sku_from_caption(
-        self, item: InstagramStory | InstagramPost, caption: str
+            self, item: InstagramStory | InstagramPost, caption: str
     ) -> list[InstagramStory | InstagramPost]:  # : CCR001
         caption = caption.lower()
 
@@ -198,8 +198,6 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _extract_sku_from_link(self, story, link):
         try:
-            if not ('ozon' in link or 'wildberries' in link):
-                return
             story.url = await self._resolve_stories_link(link)
             if 'ozon' in story.url:
                 story.marketplace = Marketplaces.ozon
@@ -240,17 +238,18 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         # check all links on the page
                         for link in sb.get_unique_links():
                             if any(
-                                [WildberriesClient.extract_sku_from_url(link), OzonClient.extract_sku_from_url(link)]
+                                    [WildberriesClient.extract_sku_from_url(link),
+                                     OzonClient.extract_sku_from_url(link)]
                             ):
                                 return link
                     return sb.get_current_url()
                 except NoSuchElementException as ex:
                     # case: when timout occured after redirect
                     if any(
-                        [
-                            WildberriesClient.extract_sku_from_url(sb.get_current_url()),
-                            OzonClient.extract_sku_from_url(sb.get_current_url()),
-                        ]
+                            [
+                                WildberriesClient.extract_sku_from_url(sb.get_current_url()),
+                                OzonClient.extract_sku_from_url(sb.get_current_url()),
+                            ]
                     ):
                         return sb.get_current_url()
                     ex.url = sb.get_current_url()
