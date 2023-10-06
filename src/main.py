@@ -1,12 +1,13 @@
 import asyncio
 import concurrent.futures
 import time
+import atexit
 
 from src.core.config import settings
 from src.core.logs import custom_logger
+from src.db.connector import engine
 from src.parser.parser import Parser
 from src.parser.utils import check_driver_installation
-
 
 RESTART_WAIT_TIME = 900
 
@@ -50,6 +51,11 @@ def handle_no_logins():
     custom_logger.warning('Check your db and credentials in .env file!')
     custom_logger.warning(f'Restart after {RESTART_WAIT_TIME // 60} min ...')
     time.sleep(RESTART_WAIT_TIME)
+
+
+@atexit.register
+def on_exit():
+    asyncio.run(engine.dispose())
 
 
 if __name__ == '__main__':
