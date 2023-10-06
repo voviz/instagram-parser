@@ -38,6 +38,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
     api_name = 'InstagramAPI'
     base_url = 'https://www.instagram.com/api/v1'
 
+    def __init__(self):
+        self.ozon = OzonClient()
+        self.wildberries = WildberriesClient()
+
     async def get_info_by_user_name(self, username: str) -> InstagramClientAnswer:
         try:
             account = await self._fetch_account()
@@ -188,7 +192,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 item_copy.marketplace = Marketplaces.ozon
             else:
                 # If the marketplace isn't mentioned in the caption, check the SKU with WildberriesClient
-                result = await WildberriesClient().check_sku(sku)
+                result = await self.wildberries.check_sku(sku) or await self.ozon.check_sku(sku)
                 item_copy.marketplace = Marketplaces.wildberries if result else Marketplaces.ozon
 
             item_copy.ad_type = AdType.text
@@ -201,10 +205,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
             story.url = await self._resolve_stories_link(link)
             if 'ozon' in story.url:
                 story.marketplace = Marketplaces.ozon
-                story.sku = OzonClient.extract_sku_from_url(story.url)
+                story.sku = self.ozon.extract_sku_from_url(story.url)
             elif 'wildberries' in story.url:
                 story.marketplace = Marketplaces.wildberries
-                story.sku = WildberriesClient.extract_sku_from_url(story.url)
+                story.sku = self.wildberries.extract_sku_from_url(story.url)
             story.ad_type = AdType.link
         except NoProxyDBError as ex:
             raise ex
@@ -238,8 +242,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         # check all links on the page
                         for link in sb.get_unique_links():
                             if any(
-                                    [WildberriesClient.extract_sku_from_url(link),
-                                     OzonClient.extract_sku_from_url(link)]
+                                    [self.wildberries.extract_sku_from_url(link),
+                                     self.ozon.extract_sku_from_url(link)]
                             ):
                                 return link
                     return sb.get_current_url()
@@ -247,8 +251,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     # case: when timout occured after redirect
                     if any(
                             [
-                                WildberriesClient.extract_sku_from_url(sb.get_current_url()),
-                                OzonClient.extract_sku_from_url(sb.get_current_url()),
+                                self.wildberries.extract_sku_from_url(sb.get_current_url()),
+                                self.ozon.extract_sku_from_url(sb.get_current_url()),
                             ]
                     ):
                         return sb.get_current_url()
