@@ -1,8 +1,6 @@
 import asyncio
-from datetime import datetime
 import random
-
-from aiostream import pipe, stream
+from datetime import datetime
 
 from src.core.config import settings
 from src.core.logs import custom_logger
@@ -65,13 +63,17 @@ class Parser:
 
     async def get_login_ids_list(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
+            semaphore = asyncio.Semaphore(10)
             for chunk in chunks(logins_list, 100):
                 updated_logins = []
-                xs = stream.iterate(chunk) | pipe.map(self._get_login_id, ordered=True, task_limit=5)
-                async with xs.stream() as streamer:
-                    async for login in streamer:
-                        if login:
-                            updated_logins.append(login)
+
+                async def process_login(login):
+                    async with semaphore:
+                        if updated_login := await self._get_login_id(login):
+                            updated_logins.append(updated_login)
+
+                tasks = [process_login(login) for login in chunk]
+                await asyncio.gather(*tasks)
                 await update_login_list(s, updated_logins)
                 custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
 
@@ -87,7 +89,7 @@ class Parser:
                     await update_login_list(s, logins_list)
                     custom_logger.info(f'{len(data)} stories with sku found!')
 
-        self.semaphore = asyncio.Semaphore(30)
+        self.semaphore = asyncio.Semaphore(10)
         await asyncio.gather(*(process_login(chunk) for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
 
     async def get_stories_data(self, logins_list: list[InstagramLogins]) -> None:
@@ -96,18 +98,22 @@ class Parser:
     @errors_handler_decorator
     async def _get_post_by_id(self, login: InstagramLogins) -> InstagramClientAnswer:
         # update login 'posts_updated_at' field
+        result = await self._retry_on_failure(self.client.get_posts_by_id, login.user_id)
         login.posts_updated_at = datetime.now()
-        return await self._retry_on_failure(self.client.get_posts_by_id, login.user_id)
+        return result
 
     async def get_posts_list_by_id(self, logins_list: list[InstagramLogins]) -> None:
         async with async_session() as s:
             for chunk in chunks(logins_list, 10):
                 posts_data = []
-                xs = stream.iterate(chunk) | pipe.map(self._get_post_by_id, ordered=True, task_limit=5)
-                async with xs.stream() as streamer:
-                    async for data in streamer:
-                        if data:
-                            posts_data.append(data)
+
+                async def process_login(login):
+                    if data := self._get_post_by_id(login):
+                        posts_data.append(data)
+
+                tasks = [process_login(login) for login in chunk]
+                await asyncio.gather(*tasks)
+
                 await add_posts_result_list(s, posts_data)
                 await update_login_list(s, chunk)
                 custom_logger.info(f'{len([p for p in posts_data if p.posts_list])} posts with sku found!')
