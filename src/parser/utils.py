@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import random
 
 import aiohttp
@@ -40,6 +41,8 @@ def chunks(lst: list, n: int):
 
 
 def errors_handler_decorator(func):  # noqa: CCR001
+
+    @functools.wraps(func)
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
