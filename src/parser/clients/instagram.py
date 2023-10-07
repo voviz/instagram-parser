@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 import re
+from time import sleep
 
 import aiohttp
 from aiohttp import TooManyRedirects
@@ -88,12 +89,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     return []
 
                 caption = post['caption']['text'] if post['caption'] else ''
+
+                # check for links in caption and check each of them for sku
                 parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at, caption=caption)
                 links = find_links(caption)
-
                 parsed_post_copies = [parsed_post.copy() for _ in links]
                 await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
 
+                # check for sku in caption
                 posts_with_caption = await self._extract_sku_from_caption(parsed_post, caption)
 
                 return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
@@ -133,12 +136,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         if not (story := self._extract_story_from_item(item)):
                             continue
 
+                        # text in story
                         if item.get('accessibility_caption'):
                             story_list = await self._extract_sku_from_caption(
                                 story, item['accessibility_caption'].lower()
                             )
                             stories_list.extend(story_list)
 
+                        # link sticker in story
                         elif item.get('story_link_stickers'):
                             await self._extract_sku_from_link(
                                 story, item['story_link_stickers'][0]['story_link']['url']
@@ -233,19 +238,28 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         if redirect_button.text == 'Перейти по ссылке':
                             redirect_button.click()
                     # define url
-                    if 'ozon.ru' in sb.get_current_url():
-                        sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
-                    elif 'wildberries.ru' in sb.get_current_url():
-                        sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
-                    else:
-                        # case: redirect landing page
-                        # check all links on the page
-                        for link in sb.get_unique_links():
-                            if any(
-                                    [self.wildberries.extract_sku_from_url(link),
-                                     self.ozon.extract_sku_from_url(link)]
-                            ):
-                                return link
+                    while True:
+                        if 'ozon.ru' in sb.get_current_url():
+                            sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+                            break
+                        elif 'wildberries.ru' in sb.get_current_url():
+                            sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
+                            break
+                        else:
+                            # case: redirect landing page
+
+                            # check all redirect links/buttons
+                            for _ in ['Перейти', 'перейти', 'Открыть', 'открыть']:
+                                if redirect_button := sb.driver.find_elements(by=By.PARTIAL_LINK_TEXT, value=_):
+                                    redirect_button[0].click()
+                                    continue
+
+                            # wait for 5 secs
+                            sleep(5)
+                            if 'ozon.ru' in sb.get_current_url() or 'wildberries.ru' in sb.get_current_url():
+                                continue
+                            break
+
                     return sb.get_current_url()
                 except NoSuchElementException as ex:
                     # case: when timout occured after redirect
