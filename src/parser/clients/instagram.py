@@ -194,8 +194,6 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 # If the marketplace isn't mentioned in the caption, check the SKU with WildberriesClient
                 if await self.wildberries.check_sku(sku):
                     item_copy.marketplace = Marketplaces.wildberries
-                elif await self.ozon.check_sku(sku):
-                    item_copy.marketplace = Marketplaces.ozon
             item_copy.ad_type = AdType.text
             if item_copy.marketplace and item_copy.sku:
                 results.append(item_copy)
