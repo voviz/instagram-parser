@@ -305,7 +305,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 raise error(user_id=kwargs['user_id'])
 
             if issubclass(error, LoginNotExistError):
-                raise error(account_name=kwargs['username'])
+                raise error(username=kwargs['username'])
 
             if issubclass(error, ProxyTooManyRequests):
                 raise error(proxy=kwargs['account'].proxy)
