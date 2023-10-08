@@ -16,6 +16,7 @@ async def add_result_list(session, result_list: list[InstagramClientAnswer]) -> 
                         'story_publication_date': story.created_at,
                         'sku': story.sku,
                         'ad_type': story.ad_type.value,
+                        'user_id': result.user_id,
                     }
                 )
 

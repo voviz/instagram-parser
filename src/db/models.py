@@ -46,6 +46,7 @@ class ParserResult(Base, IdMixin):
     __tablename__ = 'parser_result'
 
     instagram_username = Column(String(255))
+    user_id = Column(BigInteger, nullable=True)
     marketplace = Column(String(255), nullable=True)
     story_publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     sku = Column(BigInteger, nullable=True)
@@ -60,6 +61,7 @@ class ParserResultPost(Base, IdMixin):
     __tablename__ = 'parser_result_post'
 
     instagram_username = Column(String(255))
+    user_id = Column(BigInteger, nullable=True)
     publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     marketplace = Column(String(255), nullable=True)
     sku = Column(BigInteger, nullable=True)
