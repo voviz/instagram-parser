@@ -47,21 +47,16 @@ async def get_account(session: AsyncSession) -> InstagramAccounts:
             .values(last_used_at=datetime.now(), daily_usage_rate=0)
         )
     else:
-        daily_rate = await _get_account_daily_usage_rate(session, account)
         await session.execute(
             update(InstagramAccounts)
             .where(InstagramAccounts.credentials == account.credentials)
-            .values(last_used_at=datetime.now(), daily_usage_rate=daily_rate + 1)
+            .values(
+                last_used_at=datetime.now(),
+                daily_usage_rate=InstagramAccounts.daily_usage_rate + 1
+            )
         )
     await session.commit()
     return account
-
-
-async def _get_account_daily_usage_rate(session: AsyncSession, account: InstagramAccounts) -> int:
-    result = await session.execute(
-        select(InstagramAccounts.daily_usage_rate).where(InstagramAccounts.credentials == account.credentials)
-    )
-    return result.scalar()
 
 
 async def update_accounts_daily_usage_rate(session: AsyncSession) -> None:
