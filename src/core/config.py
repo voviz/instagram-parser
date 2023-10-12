@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = Field(default=5432, env='POSTGRES_PORT')
     POSTGRES_DB: str = Field(default='postgres', env='POSTGRES_DB')
     # parser settings
+    WEBDRIVER: str = Field(default='chrome', env='WEBDRIVER')
     ACCOUNT_DAILY_USAGE_RATE: int = Field(default=150, env='ACCOUNT_DAILY_USAGE_RATE')
     PROCESS_COUNT: int = Field(default=multiprocessing.cpu_count(), env='PROCESS_COUNT')
     PARSER_BETWEEN_RESTARTS_SLEEP_SEC: int = Field(default=1900, env='PARSER_BETWEEN_RESTARTS_SLEEP_SEC')

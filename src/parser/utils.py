@@ -6,6 +6,7 @@ import aiohttp
 from selenium.common import TimeoutException, WebDriverException
 from seleniumbase import get_driver
 
+from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.connector import async_session
 from src.db.crud.instagram_accounts import delete_account
@@ -18,7 +19,7 @@ from src.parser.proxy.exceptions import ProxyTooManyRequests
 
 def check_driver_installation() -> None:
     custom_logger.info('Check webdriver installation ... ')
-    driver = get_driver('chrome', headless=True)
+    driver = get_driver(settings.WEBDRIVER, headless=True)
     driver.get('https://www.google.com/chrome')
     driver.quit()
     custom_logger.info('End of check driver installation process ...')
