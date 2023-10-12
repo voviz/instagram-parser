@@ -1,6 +1,6 @@
 import asyncio
-from datetime import datetime
 import re
+from datetime import datetime
 from time import sleep
 
 import aiohttp
@@ -11,6 +11,7 @@ from seleniumbase import SB
 
 from src.core.logs import custom_logger
 from src.db.exceptions import NoProxyDBError
+from src.exceptions import BaseParserException
 from src.parser.clients.base import BaseThirdPartyAPIClient
 from src.parser.clients.exceptions import LoginNotExistError, AccountInvalidCredentials, AccountConfirmationRequired, \
     ClosedAccountError, AccountTooManyRequests
@@ -26,9 +27,7 @@ from src.parser.clients.models import (
 from src.parser.clients.ozon import OzonClient
 from src.parser.clients.utils import find_links
 from src.parser.clients.wildberries import WildberriesClient
-from src.exceptions import BaseParserException
 from src.parser.proxy.exceptions import ProxyTooManyRequests
-from src.parser.proxy.proxy_handler import convert_to_seleniumbase_format
 
 
 class InstagramClient(BaseThirdPartyAPIClient):
@@ -225,11 +224,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 custom_logger.error('url: ' + link)
 
     async def _resolve_stories_link(self, url: str) -> str:  # noqa: CCR001
-        account = await self._fetch_account()
 
-        def sync_resolve_stories_link(url: str, proxy: str) -> str:
+        def sync_resolve_stories_link(url: str) -> str:
             # init client
-            with SB(uc=True, headless2=True, proxy=convert_to_seleniumbase_format(proxy)) as sb:
+            with SB(uc=True, headless2=True) as sb:
                 try:
                     sb.open(url)
                     # case: instagram redirect page
@@ -273,7 +271,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     ex.url = sb.get_current_url()
                     raise ex
 
-        return await asyncio.get_running_loop().run_in_executor(None, sync_resolve_stories_link, url, account.proxy)
+        return await asyncio.get_running_loop().run_in_executor(None, sync_resolve_stories_link, url)
 
     async def _handle_exceptions(self, ex, **kwargs):
 
