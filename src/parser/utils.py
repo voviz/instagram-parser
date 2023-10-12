@@ -1,11 +1,11 @@
 import asyncio
 import functools
-import random
 
 import aiohttp
 from selenium.common import TimeoutException, WebDriverException
 from seleniumbase import get_driver
 
+from parser.clients.instagram import InstagramClient
 from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.connector import async_session
@@ -48,13 +48,13 @@ def errors_handler_decorator(func):  # noqa: CCR001
                 aiohttp.ClientResponseError,
                 aiohttp.ServerDisconnectedError,
                 aiohttp.client_exceptions.ClientProxyConnectionError,
-                ConnectionError,
                 aiohttp.ClientProxyConnectionError,
                 aiohttp.ClientHttpProxyError,
                 ProxyTooManyRequests,
+                ConnectionError,
         ) as ex:
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
-            await asyncio.sleep(random.randint(2, 5))
+            InstagramClient.ban_account(ex.proxy)
         except (AccountInvalidCredentials, AccountConfirmationRequired, AccountTooManyRequests) as ex:
             await account_errors(ex)
         except LoginNotExistError as ex:

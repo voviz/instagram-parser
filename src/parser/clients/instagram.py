@@ -4,11 +4,14 @@ from datetime import datetime
 from time import sleep
 
 import aiohttp
+import pytz
 from aiohttp import TooManyRedirects
 from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
+from db.connector import async_session
+from db.crud.instagram_accounts import get_account
 from src.core.logs import custom_logger
 from src.db.exceptions import NoProxyDBError
 from src.exceptions import BaseParserException
@@ -37,6 +40,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     api_name = 'InstagramAPI'
     base_url = 'https://www.instagram.com/api/v1'
+
+    ACCOUNT_BAN_TIME_SEC = 5
+    account_banned_list = {}
 
     def __init__(self):
         self.ozon = OzonClient()
@@ -275,7 +281,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _handle_exceptions(self, ex, **kwargs):
 
-        if isinstance(ex, (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError)):
+        if isinstance(ex, (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError, aiohttp.ClientOSError)):
             ex.proxy = kwargs['account'].proxy
             raise ex
 
@@ -305,9 +311,24 @@ class InstagramClient(BaseThirdPartyAPIClient):
             if issubclass(error, LoginNotExistError):
                 raise error(username=kwargs['username'])
 
-            if issubclass(error, ProxyTooManyRequests):
+            if issubclass(error, (ProxyTooManyRequests, AccountTooManyRequests)):
                 raise error(proxy=kwargs['account'].proxy)
 
             raise error(account=kwargs['account'])
 
         raise ex
+
+    @classmethod
+    async def _fetch_account(cls):
+        async with async_session() as s:
+            while True:
+                account = await get_account(s)
+                if (account.proxy in cls.account_banned_list and
+                        (datetime.now(pytz.utc) - cls.account_banned_list[
+                            account.proxy]).seconds > cls.ACCOUNT_BAN_TIME_SEC or
+                        account.proxy not in cls.account_banned_list):
+                    return account
+
+    @classmethod
+    def ban_account(cls, proxy: str):
+        cls.account_banned_list.update({proxy: datetime.now(pytz.utc)})

@@ -1,5 +1,7 @@
 from urllib.parse import urlparse
 
+from src.db.crud.instagram_accounts import get_account
+from src.db.connector import async_session
 from src.parser.clients.base import BaseThirdPartyAPIClient
 
 
@@ -22,7 +24,8 @@ class WildberriesClient(BaseThirdPartyAPIClient):
         Returns:
             bool: True if SKU exists, False otherwise.
         """
-        account = await self._fetch_account()
+        async with async_session() as s:
+            account = await get_account(s)
 
         raw_data = await self.request(
             method=BaseThirdPartyAPIClient.HTTPMethods.GET,

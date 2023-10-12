@@ -1,11 +1,9 @@
-from enum import Enum
 import json
+from enum import Enum
 from typing import Any
 
 import aiohttp
 
-from src.db.connector import async_session
-from src.db.crud.instagram_accounts import get_account
 from src.parser.clients.exceptions import ThirdPartyApiException
 from src.parser.proxy.proxy_handler import convert_to_aiohttp_format
 
@@ -64,6 +62,3 @@ class BaseThirdPartyAPIClient:
         except (json.decoder.JSONDecodeError, aiohttp.client_exceptions.ContentTypeError) as exc:
             raise ThirdPartyApiException(api_name=self.api_name, answer=str(exc), status=res.status)
 
-    async def _fetch_account(self):
-        async with async_session() as s:
-            return await get_account(s)
