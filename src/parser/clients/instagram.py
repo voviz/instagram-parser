@@ -10,8 +10,8 @@ from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
 
-from db.connector import async_session
-from db.crud.instagram_accounts import get_account
+from src.db.connector import async_session
+from src.db.crud.instagram_accounts import get_account
 from src.core.logs import custom_logger
 from src.db.exceptions import NoProxyDBError
 from src.exceptions import BaseParserException
