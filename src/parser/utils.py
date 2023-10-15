@@ -5,7 +5,7 @@ import aiohttp
 from selenium.common import TimeoutException, WebDriverException
 from seleniumbase import get_driver
 
-from parser.clients.instagram import InstagramClient
+from src.parser.clients.instagram import InstagramClient
 from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.connector import async_session
