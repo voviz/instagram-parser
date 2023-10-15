@@ -3,3 +3,4 @@
 /src/*.log
 /src/downloaded_files/
 /src/parser/clients/downloaded_files/
+/downloaded_files/
