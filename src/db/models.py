@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Integer, String, UniqueConstraint, ForeignKey
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -45,8 +45,7 @@ class Proxies(Base, IdMixin):
 class ParserResult(Base, IdMixin):
     __tablename__ = 'parser_result'
 
-    instagram_username = Column(String(255))
-    user_id = Column(BigInteger, nullable=True)
+    user_id = Column(BigInteger, ForeignKey('instagram_logins.user_id'), nullable=True)
     marketplace = Column(String(255), nullable=True)
     story_publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     sku = Column(BigInteger, nullable=True)
@@ -60,8 +59,7 @@ class ParserResult(Base, IdMixin):
 class ParserResultPost(Base, IdMixin):
     __tablename__ = 'parser_result_post'
 
-    instagram_username = Column(String(255))
-    user_id = Column(BigInteger, nullable=True)
+    user_id = Column(BigInteger, ForeignKey('instagram_logins.user_id'), nullable=True)
     publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
     marketplace = Column(String(255), nullable=True)
     sku = Column(BigInteger, nullable=True)

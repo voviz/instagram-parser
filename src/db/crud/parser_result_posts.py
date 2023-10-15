@@ -11,11 +11,10 @@ async def add_posts_result_list(session, result_list: list[InstagramClientAnswer
             for post in result.posts_list:
                 db_values_list.append(
                     {
-                        'instagram_username': result.username,
+                        'user_id': result.user_id,
                         'marketplace': post.marketplace.value,
                         'publication_date': post.created_at,
                         'sku': int(post.sku),
-                        'user_id': result.user_id,
                     }
                 )
 

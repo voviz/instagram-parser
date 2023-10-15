@@ -32,21 +32,21 @@ async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
     await session.commit()
 
 
-async def get_login_all(session) -> list[InstagramLogins]:
-    not_updated_logins_result = await session.execute(
+async def get_logins_for_update(session) -> list[InstagramLogins]:
+    not_updated_logins_query = await session.execute(
         select(InstagramLogins).filter(InstagramLogins.updated_at == None)
     )
-    not_updated_logins = not_updated_logins_result.scalars().all()
+    not_updated_logins = not_updated_logins_query.scalars().all()
 
     cutoff_date = datetime.now() - timedelta(days=1)
-    updated_logins_result = await session.execute(
+    updated_logins_query = await session.execute(
         select(InstagramLogins)
         .where(InstagramLogins.is_exists == True, InstagramLogins.updated_at < cutoff_date)
         .order_by(InstagramLogins.updated_at)
     )
-    updated_logins = updated_logins_result.scalars().all()
-
+    updated_logins = updated_logins_query.scalars().all()
     not_updated_logins.extend(updated_logins)
+
     return not_updated_logins
 
 

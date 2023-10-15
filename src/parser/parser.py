@@ -5,7 +5,7 @@ import random
 from src.core.logs import custom_logger
 from src.db.connector import async_session
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
-from src.db.crud.instagram_logins import get_login_all, update_login_list
+from src.db.crud.instagram_logins import get_logins_for_update, update_login_list
 from src.db.crud.parser_result import add_result_list
 from src.db.crud.parser_result_posts import add_posts_result_list
 from src.db.exceptions import NoAccountsDBError, NoProxyDBError
@@ -45,7 +45,7 @@ class Parser:
             await add_new_accounts(s)
             await update_accounts_daily_usage_rate(s)
             custom_logger.info('Parser is ready ...')
-            logins_for_update = await get_login_all(s)
+            logins_for_update = await get_logins_for_update(s)
             custom_logger.info(f'{len(logins_for_update)} logins for update found!')
             return logins_for_update
 
