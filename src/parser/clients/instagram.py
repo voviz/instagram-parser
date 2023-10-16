@@ -1,11 +1,11 @@
 import asyncio
-from datetime import datetime
 import re
+from datetime import datetime
 from time import sleep
 
 import aiohttp
-from aiohttp import TooManyRedirects
 import pytz
+from aiohttp import TooManyRedirects
 from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
@@ -15,7 +15,6 @@ from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.crud.instagram_accounts import get_account
 from src.db.exceptions import NoProxyDBError
-from src.exceptions import BaseParserException
 from src.parser.clients.base import BaseThirdPartyAPIClient
 from src.parser.clients.exceptions import (
     AccountConfirmationRequired,
