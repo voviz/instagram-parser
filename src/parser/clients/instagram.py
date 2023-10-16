@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from seleniumbase import SB
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.crud.instagram_accounts import get_account
 from src.db.exceptions import NoProxyDBError
@@ -243,7 +244,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
     async def _resolve_stories_link(self, url: str) -> str:  # noqa: CCR001
         def sync_resolve_stories_link(url: str) -> str:
             # init client
-            with SB(uc=True, headless2=True) as sb:
+            with SB(uc=True, headless2=True, browser=settings.WEBDRIVER) as sb:
                 try:
                     sb.open(url)
                     # case: instagram redirect page
