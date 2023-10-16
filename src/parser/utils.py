@@ -1,19 +1,23 @@
 import asyncio
-import functools
 
 import aiohttp
 from selenium.common import TimeoutException, WebDriverException
 from seleniumbase import get_driver
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.parser.clients.instagram import InstagramClient
 from src.core.config import settings
 from src.core.logs import custom_logger
-from src.db.connector import async_session
 from src.db.crud.instagram_accounts import delete_account
 from src.db.crud.instagram_logins import mark_as_not_exists
 from src.db.exceptions import NoProxyDBError
-from src.parser.clients.exceptions import AccountInvalidCredentials, LoginNotExistError, ThirdPartyApiException, \
-    AccountConfirmationRequired, AccountTooManyRequests
+from src.parser.clients.exceptions import (
+    AccountConfirmationRequired,
+    AccountInvalidCredentials,
+    AccountTooManyRequests,
+    LoginNotExistError,
+    ThirdPartyApiException,
+)
+from src.parser.clients.instagram import InstagramClient
 from src.parser.proxy.exceptions import ProxyTooManyRequests
 
 
@@ -36,29 +40,27 @@ def chunks(lst: list, n: int):
         yield lst[i: i + n]
 
 
-def errors_handler_decorator(func):  # noqa: CCR001
-
-    @functools.wraps(func)
-    async def wrapper(*args, **kwargs):
+def errors_handler(func):  # noqa: CCR001
+    async def wrapper(async_session: AsyncSession, *args, **kwargs):
         try:
-            return await func(*args, **kwargs)
+            return await func(async_session, *args, **kwargs)
         except (
-                asyncio.TimeoutError,
-                aiohttp.ClientOSError,
-                aiohttp.ClientResponseError,
-                aiohttp.ServerDisconnectedError,
-                aiohttp.client_exceptions.ClientProxyConnectionError,
-                aiohttp.ClientProxyConnectionError,
-                aiohttp.ClientHttpProxyError,
-                ProxyTooManyRequests,
-                ConnectionError,
+            asyncio.TimeoutError,
+            aiohttp.ClientOSError,
+            aiohttp.ClientResponseError,
+            aiohttp.ServerDisconnectedError,
+            aiohttp.client_exceptions.ClientProxyConnectionError,
+            aiohttp.ClientProxyConnectionError,
+            aiohttp.ClientHttpProxyError,
+            ProxyTooManyRequests,
+            ConnectionError,
         ) as ex:
             custom_logger.error(f'Connection error ({type(ex)}): {ex}')
             InstagramClient.ban_account(ex.proxy)
         except (AccountInvalidCredentials, AccountConfirmationRequired, AccountTooManyRequests) as ex:
-            await account_errors(ex)
+            await account_errors(async_session, ex)
         except LoginNotExistError as ex:
-            await login_errors(ex)
+            await login_errors(async_session, ex)
         except ThirdPartyApiException as ex:
             custom_logger.error(ex)
         except NoProxyDBError as ex:
@@ -73,13 +75,13 @@ def errors_handler_decorator(func):  # noqa: CCR001
     return wrapper
 
 
-async def account_errors(ex):
+async def account_errors(async_session, ex):
     custom_logger.warning(ex)
     async with async_session() as s:
         await delete_account(s, ex.account)
 
 
-async def login_errors(ex):
+async def login_errors(async_session, ex):
     async with async_session() as s:
         await mark_as_not_exists(s, username=ex.username, user_id=ex.user_id)
     custom_logger.error(ex)

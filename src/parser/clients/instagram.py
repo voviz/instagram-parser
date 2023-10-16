@@ -1,23 +1,28 @@
 import asyncio
-import re
 from datetime import datetime
+import re
 from time import sleep
 
 import aiohttp
-import pytz
 from aiohttp import TooManyRedirects
+import pytz
 from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.connector import async_session
-from src.db.crud.instagram_accounts import get_account
 from src.core.logs import custom_logger
+from src.db.crud.instagram_accounts import get_account
 from src.db.exceptions import NoProxyDBError
 from src.exceptions import BaseParserException
 from src.parser.clients.base import BaseThirdPartyAPIClient
-from src.parser.clients.exceptions import LoginNotExistError, AccountInvalidCredentials, AccountConfirmationRequired, \
-    ClosedAccountError, AccountTooManyRequests
+from src.parser.clients.exceptions import (
+    AccountConfirmationRequired,
+    AccountInvalidCredentials,
+    AccountTooManyRequests,
+    ClosedAccountError,
+    LoginNotExistError,
+)
 from src.parser.clients.models import (
     AdType,
     InstagramClientAnswer,
@@ -48,9 +53,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
         self.ozon = OzonClient()
         self.wildberries = WildberriesClient()
 
-    async def get_info_by_user_name(self, username: str) -> InstagramClientAnswer:
+    async def get_info_by_user_name(self, async_session: AsyncSession, username: str) -> InstagramClientAnswer:
         try:
-            account = await self._fetch_account()
+            account = await self._fetch_account(async_session)
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge='users/web_profile_info',
@@ -72,9 +77,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except BaseParserException as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
-    async def get_posts_by_id(self, user_id: int, from_datetime: datetime = None) -> InstagramClientAnswer:
+    async def get_posts_by_id(
+        self, async_session: AsyncSession, user_id: int, from_datetime: datetime = None
+    ) -> InstagramClientAnswer:
         try:
-            account = await self._fetch_account()
+            account = await self._fetch_account(async_session)
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                 edge=f'feed/user/{user_id}',
@@ -102,7 +109,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
 
                 # check for sku in caption
-                posts_with_caption = await self._extract_sku_from_caption(parsed_post, caption)
+                posts_with_caption = await self._extract_sku_from_caption(
+                    async_session=async_session, item=parsed_post, caption=caption
+                )
 
                 return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
 
@@ -120,9 +129,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except BaseParserException as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, user_id=user_id)
 
-    async def get_stories_by_id(self, user_id_list: list[int]) -> list[InstagramClientAnswer]:  # noqa: CCR001
+    async def get_stories_by_id(
+        self, async_session: AsyncSession, user_id_list: list[int]
+    ) -> list[InstagramClientAnswer]:  # : CCR001
         try:
-            account = await self._fetch_account()
+            account = await self._fetch_account(async_session)
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
             raw_data = await self.request(
                 method=BaseThirdPartyAPIClient.HTTPMethods.GET,
@@ -144,7 +155,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         # text in story
                         if item.get('accessibility_caption'):
                             story_list = await self._extract_sku_from_caption(
-                                story, item['accessibility_caption'].lower()
+                                async_session=async_session, item=story, caption=item['accessibility_caption'].lower()
                             )
                             stories_list.extend(story_list)
 
@@ -182,7 +193,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
         return None
 
     async def _extract_sku_from_caption(
-            self, item: InstagramStory | InstagramPost, caption: str
+        self, async_session: AsyncSession, item: InstagramStory | InstagramPost, caption: str
     ) -> list[InstagramStory | InstagramPost]:  # : CCR001
         caption = caption.lower()
 
@@ -202,7 +213,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 item_copy.marketplace = Marketplaces.ozon
             else:
                 # If the marketplace isn't mentioned in the caption, check the SKU with WildberriesClient
-                if await self.wildberries.check_sku(sku):
+                if await self.wildberries.check_sku(async_session, sku):
                     item_copy.marketplace = Marketplaces.wildberries
             item_copy.ad_type = AdType.text
             if item_copy.marketplace and item_copy.sku:
@@ -230,7 +241,6 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 custom_logger.error('url: ' + link)
 
     async def _resolve_stories_link(self, url: str) -> str:  # noqa: CCR001
-
         def sync_resolve_stories_link(url: str) -> str:
             # init client
             with SB(uc=True, headless2=True) as sb:
@@ -268,10 +278,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 except NoSuchElementException as ex:
                     # case: when timout occured after redirect
                     if any(
-                            [
-                                self.wildberries.extract_sku_from_url(sb.get_current_url()),
-                                self.ozon.extract_sku_from_url(sb.get_current_url()),
-                            ]
+                        [
+                            self.wildberries.extract_sku_from_url(sb.get_current_url()),
+                            self.ozon.extract_sku_from_url(sb.get_current_url()),
+                        ]
                     ):
                         return sb.get_current_url()
                     ex.url = sb.get_current_url()
@@ -319,14 +329,16 @@ class InstagramClient(BaseThirdPartyAPIClient):
         raise ex
 
     @classmethod
-    async def _fetch_account(cls):
+    async def _fetch_account(cls, async_session: AsyncSession):
         async with async_session() as s:
             while True:
                 account = await get_account(s)
-                if (account.proxy in cls.account_banned_list and
-                        (datetime.now(pytz.utc) - cls.account_banned_list[
-                            account.proxy]).seconds > cls.ACCOUNT_BAN_TIME_SEC or
-                        account.proxy not in cls.account_banned_list):
+                if (
+                    account.proxy in cls.account_banned_list
+                    and (datetime.now(pytz.utc) - cls.account_banned_list[account.proxy]).seconds
+                    > cls.ACCOUNT_BAN_TIME_SEC
+                    or account.proxy not in cls.account_banned_list
+                ):
                     return account
 
     @classmethod

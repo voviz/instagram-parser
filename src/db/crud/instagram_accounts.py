@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.config import settings
 from src.core.logs import custom_logger
 from src.db.crud.proxies import get_proxy_all, ProxyTypes
-from src.db.models import InstagramAccounts
 from src.db.exceptions import NoAccountsDBError, NoProxyDBError
+from src.db.models import InstagramAccounts
 
 
 async def get_accounts_all(session: AsyncSession) -> list[InstagramAccounts]:
@@ -50,10 +50,7 @@ async def get_account(session: AsyncSession) -> InstagramAccounts:
         await session.execute(
             update(InstagramAccounts)
             .where(InstagramAccounts.credentials == account.credentials)
-            .values(
-                last_used_at=datetime.now(),
-                daily_usage_rate=InstagramAccounts.daily_usage_rate + 1
-            )
+            .values(last_used_at=datetime.now(), daily_usage_rate=InstagramAccounts.daily_usage_rate + 1)
         )
     await session.commit()
     return account

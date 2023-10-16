@@ -1,5 +1,5 @@
-import json
 from enum import Enum
+import json
 from typing import Any
 
 import aiohttp
@@ -61,4 +61,3 @@ class BaseThirdPartyAPIClient:
             return await (res.json() if is_json else res.text())
         except (json.decoder.JSONDecodeError, aiohttp.client_exceptions.ContentTypeError) as exc:
             raise ThirdPartyApiException(api_name=self.api_name, answer=str(exc), status=res.status)
-

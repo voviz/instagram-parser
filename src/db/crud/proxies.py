@@ -1,5 +1,5 @@
-import random
 from enum import Enum
+import random
 
 from sqlalchemy import select
 

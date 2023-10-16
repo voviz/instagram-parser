@@ -1,7 +1,8 @@
 from urllib.parse import urlparse
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.db.crud.instagram_accounts import get_account
-from src.db.connector import async_session
 from src.parser.clients.base import BaseThirdPartyAPIClient
 
 
@@ -14,7 +15,7 @@ class WildberriesClient(BaseThirdPartyAPIClient):
     base_url = 'https://card.wb.ru'
     regions = '80,115,38,4,64,83,33,68,70,69,30,86,75,40,1,66,110,22,31,48,71,114'
 
-    async def check_sku(self, sku: int) -> bool:
+    async def check_sku(self, async_session: AsyncSession, sku: int) -> bool:
         """
         Checks the existence of a SKU on the Wildberries website.
 

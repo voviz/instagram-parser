@@ -33,9 +33,7 @@ async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
 
 
 async def get_logins_for_update(session) -> list[InstagramLogins]:
-    not_updated_logins_query = await session.execute(
-        select(InstagramLogins).filter(InstagramLogins.updated_at == None)
-    )
+    not_updated_logins_query = await session.execute(select(InstagramLogins).filter(InstagramLogins.updated_at == None))
     not_updated_logins = not_updated_logins_query.scalars().all()
 
     cutoff_date = datetime.now() - timedelta(days=1)
@@ -52,9 +50,11 @@ async def get_logins_for_update(session) -> list[InstagramLogins]:
 
 async def mark_as_not_exists(session, username: str = None, user_id: int = None) -> None:
     if username:
-        query = (update(InstagramLogins)
-                 .where(InstagramLogins.username == username)
-                 .values(is_exists=False, updated_at=datetime.now()))
+        query = (
+            update(InstagramLogins)
+            .where(InstagramLogins.username == username)
+            .values(is_exists=False, updated_at=datetime.now())
+        )
     else:
         query = (
             update(InstagramLogins)
