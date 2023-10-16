@@ -75,7 +75,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
 
-        except BaseParserException as ex:  # : PIE786
+        except Exception as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
     async def get_posts_by_id(
@@ -127,7 +127,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 posts_list=result_list,
             )
 
-        except BaseParserException as ex:  # : PIE786
+        except Exception as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, user_id=user_id)
 
     async def get_stories_by_id(
@@ -175,7 +175,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         )
                     )
             return stories_by_accounts
-        except BaseParserException as ex:  # : PIE786
+        except Exception as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account)
 
     def _extract_story_from_item(self, item):
@@ -292,7 +292,11 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _handle_exceptions(self, ex, **kwargs):
 
-        if isinstance(ex, (aiohttp.ClientProxyConnectionError, aiohttp.ClientHttpProxyError, aiohttp.ClientOSError)):
+        if isinstance(ex, (aiohttp.ClientProxyConnectionError,
+                           aiohttp.ClientHttpProxyError,
+                           aiohttp.ServerDisconnectedError,
+                           aiohttp.ClientOSError,
+                           asyncio.TimeoutError)):
             ex.proxy = kwargs['account'].proxy
             raise ex
 
