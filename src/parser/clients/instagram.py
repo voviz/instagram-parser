@@ -89,7 +89,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 raise LoginNotExistError(user_id=user_id)
 
             async def process_post(post):
-                created_at = datetime.fromtimestamp(post['taken_at'])
+                created_at = datetime.fromtimestamp(post['taken_at'], tz=pytz.utc)
                 if from_datetime and created_at > from_datetime:
                     return []
 
