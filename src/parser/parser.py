@@ -130,7 +130,12 @@ class Parser:
                 await add_post_statistics_list(s, posts_data)
                 # update instagram_logins
                 await update_login_list(s, chunk)
-                custom_logger.info(f'{len([p for p in posts_data if p.posts_list])} posts with sku found!')
+                # count posts
+                posts = set()
+                for acc in posts_data:
+                    for p in acc.posts_list:
+                        posts.add(p.post_id)
+                custom_logger.info(f'{len(posts)} posts with sku found!')
 
     def run_async_function(self, async_function, logins_list=None):
         db_pool = get_db_pool()
