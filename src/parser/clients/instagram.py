@@ -101,14 +101,14 @@ class InstagramClient(BaseThirdPartyAPIClient):
                     return []
 
                 caption = post['caption']['text'] if post['caption'] else ''
-
                 comments_count = post['comment_count']
                 likes_count = post['like_count']
+                url = 'https://www.instagram.com/p/' + post['code']
 
                 # check for links in caption and check each of them for sku
                 parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at,
                                             caption=caption, likes_count=likes_count,
-                                            comments_count=comments_count)
+                                            comments_count=comments_count, url=url)
                 links = find_links(caption)
                 parsed_post_copies = [parsed_post.copy() for _ in links]
                 await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))

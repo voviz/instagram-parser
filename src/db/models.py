@@ -27,7 +27,7 @@ class InstagramLogins(Base, IdMixin):
     __tablename__ = 'instagram_logins'
 
     username = Column(String(255), unique=True)
-    user_id = Column(BigInteger, nullable=True)
+    user_id = Column(BigInteger, unique=True)
     followers = Column(BigInteger, nullable=True)
     is_exists = Column(Boolean, nullable=True)
     created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
@@ -60,18 +60,20 @@ class ParserResultPost(Base, IdMixin):
     __tablename__ = 'parser_result_post'
 
     user_id = Column(BigInteger, ForeignKey('instagram_logins.user_id'))
-    publication_date = Column(type_=TIMESTAMP(timezone=True), nullable=True)
+    publication_date = Column(type_=TIMESTAMP(timezone=True))
     marketplace = Column(String(255), nullable=True)
     sku = Column(BigInteger)
     is_checked = Column(Boolean, default=False)
     created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
-    post_id = Column(BigInteger, unique=True)
+    post_id = Column(BigInteger)
+
+    __table_args__ = (UniqueConstraint('publication_date', 'sku'),)
 
 
 class PostStatistics(Base, IdMixin):
     __tablename__ = 'post_statistics'
 
-    post_id = Column(BigInteger, ForeignKey('parser_result_post.post_id'), unique=True)
+    post_id = Column(BigInteger, unique=True)
     link = Column(String(255), nullable=True)
     comments_count = Column(Integer, nullable=True)
     likes_count = Column(Integer, nullable=True)
