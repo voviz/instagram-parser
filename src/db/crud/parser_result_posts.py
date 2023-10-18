@@ -11,6 +11,7 @@ async def add_posts_result_list(session, result_list: list[InstagramClientAnswer
             for post in result.posts_list:
                 db_values_list.append(
                     {
+                        'post_id': result.post_id,
                         'user_id': result.user_id,
                         'marketplace': post.marketplace.value,
                         'publication_date': post.created_at,
