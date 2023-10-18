@@ -4,6 +4,7 @@ import random
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.crud.post_statistics import add_post_statistics_list
 from src.core.logs import custom_logger
 from src.db.connector import get_async_sessionmaker, get_db_pool
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
@@ -123,7 +124,11 @@ class Parser:
                 tasks = [process_login(login) for login in chunk]
                 await asyncio.gather(*tasks)
 
+                # update parser_results_posts
                 await add_posts_result_list(s, posts_data)
+                # update post_statistics
+                await add_post_statistics_list(s, posts_data)
+                # update instagram_logins
                 await update_login_list(s, chunk)
                 custom_logger.info(f'{len([p for p in posts_data if p.posts_list])} posts with sku found!')
 
