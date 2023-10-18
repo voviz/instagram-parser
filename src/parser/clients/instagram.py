@@ -77,52 +77,60 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except Exception as ex:  # : PIE786
             await self._handle_exceptions(ex, account=account, username=username)
 
+    async def _process_post(self, async_session: AsyncSession, post: dict, from_datetime: datetime = None):
+        created_at = datetime.fromtimestamp(post['taken_at'], tz=pytz.utc)
+        if from_datetime and created_at > from_datetime:
+            return []
+
+        caption = post['caption']['text'] if post['caption'] else ''
+        comments_count = post['comment_count']
+        likes_count = post['like_count']
+        url = 'https://www.instagram.com/p/' + post['code']
+
+        parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at,
+                                    caption=caption, likes_count=likes_count,
+                                    comments_count=comments_count, url=url)
+        links = find_links(caption)
+        parsed_post_copies = [parsed_post.model_copy() for _ in links]
+
+        await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
+        posts_with_caption = await self._extract_sku_from_caption(async_session=async_session,
+                                                                  item=parsed_post,
+                                                                  caption=caption)
+
+        return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
+
     async def get_posts_by_id(
         self, async_session: AsyncSession, user_id: int, from_datetime: datetime = None
     ) -> InstagramClientAnswer:
         try:
             account = await self._fetch_account(async_session)
-            raw_data = await self.request(
-                method=BaseThirdPartyAPIClient.HTTPMethods.GET,
-                edge=f'feed/user/{user_id}',
-                querystring={'count': 100000},
-                is_json=True,
-                cookie=account.cookies,
-                user_agent=account.user_agent,
-                proxy=account.proxy,
-            )
 
-            if not raw_data.get('user'):
-                raise LoginNotExistError(user_id=user_id)
-
-            async def process_post(post):
-                created_at = datetime.fromtimestamp(post['taken_at'], tz=pytz.utc)
-                if from_datetime and created_at > from_datetime:
-                    return []
-
-                caption = post['caption']['text'] if post['caption'] else ''
-                comments_count = post['comment_count']
-                likes_count = post['like_count']
-                url = 'https://www.instagram.com/p/' + post['code']
-
-                # check for links in caption and check each of them for sku
-                parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at,
-                                            caption=caption, likes_count=likes_count,
-                                            comments_count=comments_count, url=url)
-                links = find_links(caption)
-                parsed_post_copies = [parsed_post.copy() for _ in links]
-                await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
-
-                # check for sku in caption
-                posts_with_caption = await self._extract_sku_from_caption(
-                    async_session=async_session, item=parsed_post, caption=caption
+            result_list = []
+            next_max_id = None
+            while True:
+                raw_data = await self.request(
+                    method=BaseThirdPartyAPIClient.HTTPMethods.GET,
+                    edge=f'feed/user/{user_id}',
+                    querystring={'count': 100} if not next_max_id else {'count': 100, 'max_id': next_max_id},
+                    is_json=True,
+                    cookie=account.cookies,
+                    user_agent=account.user_agent,
+                    proxy=account.proxy,
                 )
 
-                return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
+                if not raw_data.get('user'):
+                    raise LoginNotExistError(user_id=user_id)
 
-            result = await asyncio.gather(*(process_post(p) for p in raw_data['items']))
+                result = await asyncio.gather(*(self._process_post(async_session, p, from_datetime)
+                                                for p in raw_data['items']))
 
-            result_list = [i for sublist in result for i in sublist]
+                result_list.extend([i for sublist in result for i in sublist])
+
+                if not raw_data['more_available']:
+                    break
+
+                next_max_id = raw_data['next_max_id']
 
             return InstagramClientAnswer(
                 source=ThirdPartyAPISource.instagram,
@@ -209,7 +217,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
         results = []
 
         for sku in skus:
-            item_copy = item.copy()
+            item_copy = item.model_copy()
             item_copy.sku = sku
 
             if any(wb in caption for wb in ('wb', 'вб', 'wildberries', 'вайл')):
