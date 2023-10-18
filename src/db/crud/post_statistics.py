@@ -11,7 +11,7 @@ async def add_post_statistics_list(session, result_list: list[InstagramClientAns
             for post in result.posts_list:
                 db_values_list.append(
                     {
-                        'post_id': result.post_id,
+                        'post_id': post.post_id,
                         'link': post.url,
                         'comments_count': post.comments_count,
                         'likes_count': post.likes_count,
