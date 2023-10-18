@@ -21,7 +21,7 @@ from src.parser.utils import chunks, errors_handler
 class Parser:
     LOGINS_CHUNK_SIZE = 30
     MAX_SLEEP_FOR_COROUTINE = 1
-    MAX_COROUTINE_NUM = 5
+    MAX_COROUTINE_NUM = 3
 
     def __init__(self):
         self.client = InstagramClient()
