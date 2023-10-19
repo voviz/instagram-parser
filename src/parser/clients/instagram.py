@@ -74,7 +74,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 followers_number=raw_data['data']['user']['edge_followed_by']['count'],
             )
 
-        except Exception as ex:  # : PIE786
+        except Exception as ex:
             await self._handle_exceptions(ex, account=account, username=username)
 
     async def _process_post(self, async_session: AsyncSession, post: dict, from_datetime: datetime = None):
@@ -145,12 +145,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 posts_list=result_list,
             )
 
-        except Exception as ex:  # : PIE786
+        except Exception as ex:
             await self._handle_exceptions(ex, account=account, user_id=user_id)
 
     async def get_stories_by_id(
         self, async_session: AsyncSession, user_id_list: list[int]
-    ) -> list[InstagramClientAnswer]:  # : CCR001
+    ) -> list[InstagramClientAnswer]:
         try:
             account = await self._fetch_account(async_session)
             querystring = ''.join([f'reel_ids={_}&' for _ in user_id_list])
@@ -193,7 +193,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                         )
                     )
             return stories_by_accounts
-        except Exception as ex:  # : PIE786
+        except Exception as ex:
             await self._handle_exceptions(ex, account=account)
 
     def _extract_story_from_item(self, item):
@@ -213,7 +213,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _extract_sku_from_caption(
         self, async_session: AsyncSession, item: InstagramStory | InstagramPost, caption: str
-    ) -> list[InstagramStory | InstagramPost]:  # : CCR001
+    ) -> list[InstagramStory | InstagramPost]:
         caption = caption.lower()
 
         keywords = ('артикул', 'sku', 'articul')
@@ -254,12 +254,12 @@ class InstagramClient(BaseThirdPartyAPIClient):
             raise ex
         except WebDriverException:
             pass
-        except Exception as ex:  # noqa: PIE786
+        except Exception as ex:
             if str(ex) != 'Retry of page load timed out after 120.0 seconds!':
                 custom_logger.error(f'{type(ex)}: {ex}')
                 custom_logger.error('url: ' + link)
 
-    async def _resolve_stories_link(self, url: str) -> str:  # noqa: CCR001
+    async def _resolve_stories_link(self, url: str) -> str:
         def sync_resolve_stories_link(url: str) -> str:
             # init client
             with SB(uc=True, headless2=True, browser=settings.WEBDRIVER) as sb:
