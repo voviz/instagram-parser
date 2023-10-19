@@ -4,13 +4,13 @@ import random
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.db.crud.post_statistics import add_post_statistics_list
 from src.core.logs import custom_logger
 from src.db.connector import get_async_sessionmaker, get_db_pool
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
 from src.db.crud.instagram_logins import get_logins_for_update, update_login_list
 from src.db.crud.parser_result import add_result_list
 from src.db.crud.parser_result_posts import add_posts_result_list
+from src.db.crud.post_statistics import add_post_statistics_list
 from src.db.exceptions import NoAccountsDBError, NoProxyDBError
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient

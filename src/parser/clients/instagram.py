@@ -1,11 +1,11 @@
 import asyncio
-import re
 from datetime import datetime
+import re
 from time import sleep
 
 import aiohttp
-import pytz
 from aiohttp import TooManyRedirects
+import pytz
 from selenium.common import NoSuchElementException, WebDriverException
 from selenium.webdriver.common.by import By
 from seleniumbase import SB
@@ -87,18 +87,23 @@ class InstagramClient(BaseThirdPartyAPIClient):
         likes_count = post['like_count']
         url = 'https://www.instagram.com/p/' + post['code']
 
-        parsed_post = InstagramPost(post_id=post['pk'], created_at=created_at,
-                                    caption=caption, likes_count=likes_count,
-                                    comments_count=comments_count, url=url)
+        parsed_post_base = InstagramPost(
+            post_id=post['pk'],
+            created_at=created_at,
+            caption=caption,
+            likes_count=likes_count,
+            comments_count=comments_count,
+            url=url,
+        )
         links = find_links(caption)
-        parsed_post_copies = [parsed_post.model_copy() for _ in links]
+        parsed_post_copies = [parsed_post_base.model_copy() for _ in links]
 
         await asyncio.gather(*(self._extract_sku_from_link(p, l) for p, l in zip(parsed_post_copies, links)))
-        posts_with_caption = await self._extract_sku_from_caption(async_session=async_session,
-                                                                  item=parsed_post,
-                                                                  caption=caption)
+        posts_with_caption = await self._extract_sku_from_caption(
+            async_session=async_session, item=parsed_post_base, caption=caption
+        )
 
-        return [p for p in ([parsed_post] + parsed_post_copies + posts_with_caption) if p.sku]
+        return [p for p in (parsed_post_copies + posts_with_caption) if p.sku]
 
     async def get_posts_by_id(
         self, async_session: AsyncSession, user_id: int, from_datetime: datetime = None
@@ -108,7 +113,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
             result_list = []
             next_max_id = None
-            while True:
+            while len(result_list) < 500:
                 raw_data = await self.request(
                     method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                     edge=f'feed/user/{user_id}',
@@ -122,8 +127,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 if not raw_data.get('user'):
                     raise LoginNotExistError(user_id=user_id)
 
-                result = await asyncio.gather(*(self._process_post(async_session, p, from_datetime)
-                                                for p in raw_data['items']))
+                result = await asyncio.gather(
+                    *(self._process_post(async_session, p, from_datetime) for p in raw_data['items'])
+                )
 
                 result_list.extend([i for sublist in result for i in sublist])
 
@@ -304,11 +310,16 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
     async def _handle_exceptions(self, ex, **kwargs):
 
-        if isinstance(ex, (aiohttp.ClientProxyConnectionError,
-                           aiohttp.ClientHttpProxyError,
-                           aiohttp.ServerDisconnectedError,
-                           aiohttp.ClientOSError,
-                           asyncio.TimeoutError)):
+        if isinstance(
+            ex,
+            (
+                aiohttp.ClientProxyConnectionError,
+                aiohttp.ClientHttpProxyError,
+                aiohttp.ServerDisconnectedError,
+                aiohttp.ClientOSError,
+                asyncio.TimeoutError,
+            ),
+        ):
             ex.proxy = kwargs['account'].proxy
             raise ex
 

@@ -21,6 +21,9 @@ async def add_post_statistics_list(session, result_list: list[InstagramClientAns
     unique_dicts = list({tuple(sorted(d.items())): d for d in db_values_list}.values())
     for values in unique_dicts:
         query = insert(PostStatistics).values(values)
-        await session.execute(query.on_conflict_do_update(constraint='post_statistics_pk',
-                                                          set_={col: getattr(query.excluded, col) for col in values}))
+        await session.execute(
+            query.on_conflict_do_update(
+                constraint='post_statistics_pk', set_={col: getattr(query.excluded, col) for col in values}
+            )
+        )
     await session.commit()
