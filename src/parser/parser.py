@@ -24,11 +24,10 @@ from src.parser.utils import chunks, errors_handler
 class Parser:
     LOGINS_CHUNK_SIZE = 30
     MAX_SLEEP_FOR_COROUTINE = 1
-    MAX_COROUTINE_NUM = 30
+    MAX_COROUTINE_NUM = 3
 
     def __init__(self):
         self.client = InstagramClient()
-        self._semaphore = Semaphore(self.MAX_COROUTINE_NUM)
 
     async def _retry_on_failure(self, func, async_session: AsyncSession, *args, **kwargs):
         while True:
@@ -77,11 +76,12 @@ class Parser:
         return await self._retry_on_failure(self._internal_get_login_id, async_session, login)
 
     async def get_login_ids_list(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
+        semaphore = Semaphore(self.MAX_COROUTINE_NUM)
         for chunk in chunks(logins_list, 100):
             updated_logins = []
 
             async def process_login(async_session, login):
-                async with self._semaphore:
+                async with semaphore:
                     if updated_login := await self._get_login_id(async_session, login):
                         updated_logins.append(updated_login)
                     await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
@@ -93,8 +93,8 @@ class Parser:
             custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
 
     @errors_handler
-    async def _get_stories_in_chunk(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
-        async with self._semaphore:
+    async def _get_stories_in_chunk(self, semaphore: Semaphore, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
+        async with semaphore:
             async with async_session() as s:
                 if not logins_list:
                     return
@@ -106,7 +106,9 @@ class Parser:
         await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
     async def _internal_get_stories_data(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
-        await asyncio.gather(*(self._get_stories_in_chunk(async_session, chunk) for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
+        semaphore = Semaphore(self.MAX_COROUTINE_NUM)
+        await asyncio.gather(*(self._get_stories_in_chunk(semaphore, async_session, chunk)
+                               for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
 
     async def get_stories_data(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
         return await self._internal_get_stories_data(async_session, logins_list)
@@ -121,10 +123,11 @@ class Parser:
         return result
 
     async def get_posts_list_by_id(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
+        semaphore = Semaphore(self.MAX_COROUTINE_NUM)
         async with async_session() as s:
             for chunk in chunks(logins_list, 10):
                 async def process_login(login):
-                    async with self._semaphore:
+                    async with semaphore:
                         if data := await self._get_posts_by_id(async_session, login):
                             # update parser_results_posts
                             result = await add_posts_result_list(s, data)
