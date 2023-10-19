@@ -2,6 +2,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.parser.clients.models import InstagramStory, InstagramPost
 from src.db.crud.instagram_accounts import get_account
 from src.parser.clients.base import BaseThirdPartyAPIClient
 
@@ -15,13 +16,12 @@ class WildberriesClient(BaseThirdPartyAPIClient):
     base_url = 'https://card.wb.ru'
     regions = '80,115,38,4,64,83,33,68,70,69,30,86,75,40,1,66,110,22,31,48,71,114'
 
-    async def check_sku(self, async_session: AsyncSession, sku: int) -> bool:
+    async def check_sku(self, async_session: AsyncSession, item: InstagramStory | InstagramPost) -> bool:
         """
         Checks the existence of a SKU on the Wildberries website.
 
         Args:
-            sku (int): The SKU to check.
-
+            item (int): The item with SKU to check
         Returns:
             bool: True if SKU exists, False otherwise.
         """
@@ -33,14 +33,18 @@ class WildberriesClient(BaseThirdPartyAPIClient):
             edge='cards/detail',
             querystring={
                 'regions': self.regions,
-                'nm': str(sku),
+                'nm': str(item.sku),
             },
             is_json=True,
             proxy=account.proxy,
             user_agent=account.user_agent,
         )
 
-        return bool(raw_data.get('data', {}).get('products'))
+        if products := raw_data.get('data', {}).get('products'):
+            item.brand = products[0].get('brand')
+            item.brand_id = products[0].get('brandId')
+
+        return bool(products)
 
     @staticmethod
     def extract_sku_from_url(url: str) -> int | None:

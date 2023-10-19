@@ -225,14 +225,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
             item_copy = item.model_copy()
             item_copy.sku = sku
 
-            if any(wb in caption for wb in ('wb', 'вб', 'wildberries', 'вайл')):
+            if await self.wildberries.check_sku(async_session, item_copy):
                 item_copy.marketplace = Marketplaces.wildberries
             elif any(oz in caption for oz in ('ozon', 'озон')):
                 item_copy.marketplace = Marketplaces.ozon
-            else:
-                # If the marketplace isn't mentioned in the caption, check the SKU with WildberriesClient
-                if await self.wildberries.check_sku(async_session, sku):
-                    item_copy.marketplace = Marketplaces.wildberries
             item_copy.ad_type = AdType.text
             if item_copy.marketplace and item_copy.sku:
                 results.append(item_copy)

@@ -60,20 +60,20 @@ class ParserResultPost(Base, IdMixin):
     __tablename__ = 'parser_result_post'
 
     user_id = Column(BigInteger, ForeignKey('instagram_logins.user_id'))
-    publication_date = Column(type_=TIMESTAMP(timezone=True))
-    marketplace = Column(String(255), nullable=True)
-    sku = Column(BigInteger)
-    is_checked = Column(Boolean, default=False)
-    created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
-    post_id = Column(BigInteger)
-
-    __table_args__ = (UniqueConstraint('publication_date', 'sku'),)
-
-
-class PostStatistics(Base, IdMixin):
-    __tablename__ = 'post_statistics'
-
     post_id = Column(BigInteger, unique=True)
     link = Column(String(255), nullable=True)
     comments_count = Column(Integer, nullable=True)
     likes_count = Column(Integer, nullable=True)
+    publication_date = Column(type_=TIMESTAMP(timezone=True))
+    created_at = Column(type_=TIMESTAMP(timezone=True), default=datetime.utcnow)
+
+
+class InstSkuPerPost(Base, IdMixin):
+    __tablename__ = 'inst_sku_per_post'
+
+    parser_result_post_id = Column(Integer, ForeignKey('parser_result_post.id'))
+    marketplace = Column(String(255), nullable=True)
+    sku = Column(BigInteger)
+    is_checked = Column(Boolean, default=False)
+    brand = Column(String(255), nullable=True)
+    brand_id = Column(BigInteger, nullable=True)

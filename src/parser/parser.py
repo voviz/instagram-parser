@@ -12,7 +12,7 @@ from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_dai
 from src.db.crud.instagram_logins import get_logins_for_update, update_login_list
 from src.db.crud.parser_result import add_result_list
 from src.db.crud.parser_result_posts import add_posts_result_list
-from src.db.crud.post_statistics import add_post_statistics_list
+from src.db.crud.inst_sku_per_post import add_inst_sku_per_post_list
 from src.db.exceptions import NoAccountsDBError, NoProxyDBError
 from src.db.models import InstagramLogins
 from src.parser.clients.instagram import InstagramClient
@@ -127,9 +127,9 @@ class Parser:
                     async with semaphore:
                         if data := await self._get_posts_by_id(async_session, login):
                             # update parser_results_posts
-                            await add_posts_result_list(s, data)
-                            # update post_statistics
-                            await add_post_statistics_list(s, data)
+                            result = await add_posts_result_list(s, data)
+                            # update inst_sku_per_post
+                            await add_inst_sku_per_post_list(s, data, result)
                             # update instagram_login
                             await update_login_list(s, [login])
                             # count posts
