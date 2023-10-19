@@ -2,8 +2,10 @@ import asyncio
 from datetime import datetime
 import random
 
+import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.parser.proxy.exceptions import ProxyTooManyRequests
 from src.core.logs import custom_logger
 from src.db.connector import get_async_sessionmaker, get_db_pool
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
@@ -36,6 +38,14 @@ class Parser:
                     if not await add_new_accounts(s):
                         custom_logger.warning('Restart after 15 min ...')
                         await asyncio.sleep(900)
+            except (
+                    asyncio.TimeoutError,
+                    aiohttp.client_exceptions.ClientProxyConnectionError,
+                    aiohttp.ClientProxyConnectionError,
+                    ProxyTooManyRequests,
+            ) as ex:
+                custom_logger.error(f'Connection error ({type(ex)}): {ex}')
+                InstagramClient.ban_account(ex.proxy)
 
     async def on_start(self, async_session: AsyncSession) -> list[InstagramLogins]:
         return await self._retry_on_failure(self._internal_on_start, async_session)
@@ -88,7 +98,7 @@ class Parser:
                 async with async_session() as s:
                     if not logins_list:
                         return
-                    data = await self.client.get_stories_by_id(async_session, [_.user_id for _ in logins_list])
+                    data = await self._retry_on_failure(self.client.get_stories_by_id, async_session, [_.user_id for _ in logins_list])
                     await add_result_list(s, data)
                     await update_login_list(s, logins_list)
                     custom_logger.info(f'{len(data)} stories with sku found!')
@@ -113,29 +123,22 @@ class Parser:
         semaphore = asyncio.Semaphore(self.MAX_COROUTINE_NUM)
         async with async_session() as s:
             for chunk in chunks(logins_list, 10):
-                posts_data = []
-
                 async def process_login(login):
                     async with semaphore:
                         if data := await self._get_posts_by_id(async_session, login):
-                            posts_data.append(data)
+                            # update parser_results_posts
+                            await add_posts_result_list(s, data)
+                            # update post_statistics
+                            await add_post_statistics_list(s, data)
+                            # update instagram_login
+                            await update_login_list(s, [login])
+                            # count posts
+                            posts_count = len(set(p.post_id for p in data.posts_list))
+                            custom_logger.info(f'{posts_count} posts with sku found!')
                         await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
                 tasks = [process_login(login) for login in chunk]
                 await asyncio.gather(*tasks)
-
-                # update parser_results_posts
-                await add_posts_result_list(s, posts_data)
-                # update post_statistics
-                await add_post_statistics_list(s, posts_data)
-                # update instagram_logins
-                await update_login_list(s, chunk)
-                # count posts
-                posts = set()
-                for acc in posts_data:
-                    for p in acc.posts_list:
-                        posts.add(p.post_id)
-                custom_logger.info(f'{len(posts)} posts with sku found!')
 
     def run_async_function(self, async_function, logins_list=None):
         db_pool = get_db_pool()

@@ -109,11 +109,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
         self, async_session: AsyncSession, user_id: int, from_datetime: datetime = None
     ) -> InstagramClientAnswer:
         try:
-            account = await self._fetch_account(async_session)
-
             result_list = []
             next_max_id = None
             while len(result_list) < 500:
+                account = await self._fetch_account(async_session)
                 raw_data = await self.request(
                     method=BaseThirdPartyAPIClient.HTTPMethods.GET,
                     edge=f'feed/user/{user_id}',

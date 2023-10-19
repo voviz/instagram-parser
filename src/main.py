@@ -41,7 +41,7 @@ def process_logins(logins_for_update, parser):
             try:
                 future.result()
             except Exception as e:  # noqa: PIE786
-                custom_logger.error(f'Error while processing login: {e}')
+                custom_logger.error(f'Global parser error: {e}')
 
 
 def handle_no_logins():
