@@ -41,9 +41,9 @@ def chunks(lst: list, n: int):
 
 
 def errors_handler(func):  # noqa: CCR001
-    async def wrapper(async_session: AsyncSession, *args, **kwargs):
+    async def wrapper(self, async_session: AsyncSession, *args, **kwargs):
         try:
-            return await func(async_session, *args, **kwargs)
+            return await func(self, async_session, *args, **kwargs)
         except (
             asyncio.TimeoutError,
             aiohttp.ClientOSError,
@@ -69,7 +69,7 @@ def errors_handler(func):  # noqa: CCR001
             custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
         except WebDriverException as ex:
             custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
-        except Exception as ex:  # noqa: PIE786
+        except Exception as ex:
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
 
     return wrapper
