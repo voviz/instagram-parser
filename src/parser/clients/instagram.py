@@ -163,10 +163,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
             )
             stories_by_accounts = []
             if raw_data['reels']:
-                for reels_id in raw_data['reels']:
+                for user_id in raw_data['reels']:
                     stories_list = []
-                    username = raw_data['reels'][reels_id]['user']['username']
-                    for item in raw_data['reels'][reels_id]['items']:
+                    username = raw_data['reels'][user_id]['user']['username']
+                    for item in raw_data['reels'][user_id]['items']:
                         if not (story := self._extract_story_from_item(item)):
                             continue
 
@@ -188,7 +188,10 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                     stories_by_accounts.append(
                         InstagramClientAnswer(
-                            source=ThirdPartyAPISource.instagram, username=username, stories_list=stories_list
+                            source=ThirdPartyAPISource.instagram,
+                            username=username,
+                            stories_list=stories_list,
+                            user_id=user_id
                         )
                     )
             return stories_by_accounts
