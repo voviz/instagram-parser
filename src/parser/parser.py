@@ -54,13 +54,9 @@ class Parser:
 
     async def _internal_on_start(self, async_session: AsyncSession):
         async with async_session() as s:
-            custom_logger.info('Start parser ...')
-            custom_logger.info('Prepare database ...')
             await add_new_accounts(s)
             await update_accounts_daily_usage_rate(s)
-            custom_logger.info('Parser is ready ...')
             logins_for_update = await get_logins_for_update(s)
-            custom_logger.info(f'{len(logins_for_update)} logins for update found!')
             return logins_for_update
 
     async def _internal_get_login_id(
@@ -160,8 +156,7 @@ class Parser:
                 await self.handle_no_logins()
 
     async def handle_no_logins(self):
-        custom_logger.warning('Check your db and credentials in .env file!')
-        custom_logger.warning(f'Restart after {self.RESTART_WAIT_TIME // 60} min ...')
+        custom_logger.warning(f'Restart process after {self.RESTART_WAIT_TIME // 60} min ...')
         await asyncio.sleep(self.RESTART_WAIT_TIME)
 
     def run_async_function(self, async_function):
