@@ -1,4 +1,5 @@
 import asyncio
+import urllib.parse
 from datetime import datetime
 import re
 from time import sleep
@@ -238,15 +239,26 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
         return results
 
-    async def _extract_sku_from_link(self, story, link):
+    async def _extract_sku_from_link(self, story, url):
         try:
-            story.url = await self._resolve_stories_link(link)
-            if 'ozon' in story.url:
+            decoded_url = urllib.parse.unquote(url)
+            if 'https://l.instagram.com/?u=' in decoded_url:
+                decoded_url = decoded_url.split('https://l.instagram.com/?u=')[1]
+            story.url = decoded_url
+            if 'ozon.ru' in story.url:
                 story.marketplace = Marketplaces.ozon
                 story.sku = self.ozon.extract_sku_from_url(story.url)
-            elif 'wildberries' in story.url:
+            elif 'wildberries.ru' in story.url:
                 story.marketplace = Marketplaces.wildberries
                 story.sku = self.wildberries.extract_sku_from_url(story.url)
+            else:
+                story.url = await self._resolve_stories_link(url)
+                if 'ozon.ru' in story.url:
+                    story.marketplace = Marketplaces.ozon
+                    story.sku = self.ozon.extract_sku_from_url(story.url)
+                elif 'wildberries.ru' in story.url:
+                    story.marketplace = Marketplaces.wildberries
+                    story.sku = self.wildberries.extract_sku_from_url(story.url)
             story.ad_type = AdType.link
         except NoProxyDBError as ex:
             raise ex
@@ -255,7 +267,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
         except Exception as ex:
             if str(ex) != 'Retry of page load timed out after 120.0 seconds!':
                 custom_logger.error(f'{type(ex)}: {ex}')
-                custom_logger.error('url: ' + link)
+                custom_logger.error('url: ' + url)
 
     async def _resolve_stories_link(self, url: str) -> str:
         def sync_resolve_stories_link(url: str) -> str:
