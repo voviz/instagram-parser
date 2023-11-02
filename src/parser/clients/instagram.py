@@ -13,7 +13,7 @@ from seleniumbase import SB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
-from src.core.logs import custom_logger
+from src.core.logs import custom_logger, logger
 from src.db.crud.instagram_accounts import get_account
 from src.db.exceptions import NoProxyDBError
 from src.parser.clients.base import BaseThirdPartyAPIClient
@@ -259,6 +259,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 elif 'wildberries.ru' in story.url:
                     story.marketplace = Marketplaces.wildberries
                     story.sku = self.wildberries.extract_sku_from_url(story.url)
+                    if story.sku:
+                        logger.info(f"{decoded_url}")
             story.ad_type = AdType.link
         except NoProxyDBError as ex:
             raise ex
