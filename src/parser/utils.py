@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 
 import aiohttp
 from selenium.common import TimeoutException, WebDriverException
@@ -70,6 +71,7 @@ def errors_handler(func):  # noqa: CCR001
         except WebDriverException as ex:
             custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
         except Exception as ex:
+            traceback.print_exc()
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')
 
     return wrapper
