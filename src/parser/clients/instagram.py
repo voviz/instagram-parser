@@ -37,6 +37,7 @@ from src.parser.clients.ozon import OzonClient
 from src.parser.clients.utils import find_links
 from src.parser.clients.wildberries import WildberriesClient
 from src.parser.proxy.exceptions import ProxyTooManyRequests
+from src.parser.utils import resolve_redirection_link
 
 
 class InstagramClient(BaseThirdPartyAPIClient):
@@ -252,15 +253,18 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 story.marketplace = Marketplaces.wildberries
                 story.sku = self.wildberries.extract_sku_from_url(story.url)
             else:
-                story.url = await self._resolve_stories_link(url)
-                if 'ozon.ru' in story.url:
-                    story.marketplace = Marketplaces.ozon
-                    story.sku = self.ozon.extract_sku_from_url(story.url)
-                elif 'wildberries.ru' in story.url:
-                    story.marketplace = Marketplaces.wildberries
-                    story.sku = self.wildberries.extract_sku_from_url(story.url)
-                    if story.sku:
-                        logger.info(f"{decoded_url}")
+                story.sku = resolve_redirection_link(url)  # TODO make it async
+                story.marketplace = Marketplaces.wildberries
+
+                # story.url = await self._resolve_stories_link(url)
+                # if 'ozon.ru' in story.url:
+                #     story.marketplace = Marketplaces.ozon
+                #     story.sku = self.ozon.extract_sku_from_url(story.url)
+                # elif 'wildberries.ru' in story.url:
+                #     story.marketplace = Marketplaces.wildberries
+                #     story.sku = self.wildberries.extract_sku_from_url(story.url)
+                #     if story.sku:
+                #         logger.info(f"{decoded_url}")
             story.ad_type = AdType.link
         except NoProxyDBError as ex:
             raise ex
