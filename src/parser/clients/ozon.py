@@ -1,8 +1,8 @@
 import re
 from urllib.parse import parse_qs, urlparse
 
-from selenium.webdriver.common.by import By
-from seleniumbase import SB
+# from selenium.webdriver.common.by import By
+# from seleniumbase import SB
 
 from src.parser.clients.base import BaseThirdPartyAPIClient
 
@@ -16,21 +16,21 @@ class OzonClient(BaseThirdPartyAPIClient):
     base_url = 'https://www.ozon.ru'
     FOUND_TEXT_PATTERN = r'найден[оа]? (\d+) товар[аов]?'
 
-    async def check_sku(self, sku: int) -> bool:
-        """
-        Checks the existence of a SKU on the Ozon website.
-
-        Args:
-            sku (int): The SKU to check.
-
-        Returns:
-            bool: True if SKU exists, False otherwise.
-        """
-        with SB(uc=True, headless2=True) as sb:
-            sb.open(self.base_url + '/search/' + f'?text={sku}&from_global=true')
-            sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
-            page = sb.driver.page_source
-        return bool(re.findall(self.FOUND_TEXT_PATTERN, page))
+    # async def check_sku(self, sku: int) -> bool:
+    #     """
+    #     Checks the existence of a SKU on the Ozon website.
+    #
+    #     Args:
+    #         sku (int): The SKU to check.
+    #
+    #     Returns:
+    #         bool: True if SKU exists, False otherwise.
+    #     """
+    #     with SB(uc=True, headless2=True) as sb:
+    #         sb.open(self.base_url + '/search/' + f'?text={sku}&from_global=true')
+    #         sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+    #         page = sb.driver.page_source
+    #     return bool(re.findall(self.FOUND_TEXT_PATTERN, page))
 
     @staticmethod
     def extract_sku_from_url(url: str) -> int | None:

@@ -5,8 +5,8 @@ import aiohttp
 import re
 import urllib.parse
 import requests
-from selenium.common import TimeoutException, WebDriverException
-from seleniumbase import get_driver
+# from selenium.common import TimeoutException, WebDriverException
+# from seleniumbase import get_driver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -25,12 +25,12 @@ from src.parser.clients.instagram import InstagramClient
 from src.parser.proxy.exceptions import ProxyTooManyRequests
 
 
-def check_driver_installation() -> None:
-    custom_logger.info('Check webdriver installation ... ')
-    driver = get_driver(settings.WEBDRIVER, headless=True)
-    driver.get('https://www.google.com/chrome')
-    driver.quit()
-    custom_logger.info('End of check driver installation process ...')
+# def check_driver_installation() -> None:
+#     custom_logger.info('Check webdriver installation ... ')
+#     driver = get_driver(settings.WEBDRIVER, headless=True)
+#     driver.get('https://www.google.com/chrome')
+#     driver.quit()
+#     custom_logger.info('End of check driver installation process ...')
 
 
 def chunks(lst: list, n: int):
@@ -69,10 +69,10 @@ def errors_handler(func):  # noqa: CCR001
             custom_logger.error(ex)
         except NoProxyDBError as ex:
             await no_proxy_db_error(ex)
-        except TimeoutException as ex:
-            custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
-        except WebDriverException as ex:
-            custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
+        # except TimeoutException as ex:
+        #     custom_logger.error(f'Error with story link resolving process ({type(ex)}) url: {ex.url}')
+        # except WebDriverException as ex:
+        #     custom_logger.error(f'Error with webdriver in story link resolving process ({type(ex)}): {ex}')
         except Exception as ex:
             traceback.print_exc()
             custom_logger.error(f'Something wrong with parser ({type(ex)}): {ex}')

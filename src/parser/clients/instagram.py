@@ -7,9 +7,9 @@ from time import sleep
 import aiohttp
 from aiohttp import TooManyRedirects
 import pytz
-from selenium.common import NoSuchElementException, WebDriverException
-from selenium.webdriver.common.by import By
-from seleniumbase import SB
+# from selenium.common import NoSuchElementException, WebDriverException
+# from selenium.webdriver.common.by import By
+# from seleniumbase import SB
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.config import settings
@@ -219,9 +219,9 @@ class InstagramClient(BaseThirdPartyAPIClient):
     ) -> list[InstagramStory | InstagramPost]:
         caption = caption.lower()
 
-        keywords = ('артикул', 'sku', 'articul')
+        # keywords = ('артикул', 'sku', 'articul')
 
-        skus = re.findall(r'\d{5,10}', caption) if any(keyword in caption for keyword in keywords) else []
+        skus = re.findall(r'\d{5,10}', caption) #if any(keyword in caption for keyword in keywords) else []
 
         results = []
 
@@ -267,61 +267,61 @@ class InstagramClient(BaseThirdPartyAPIClient):
             story.ad_type = AdType.link
         except NoProxyDBError as ex:
             raise ex
-        except WebDriverException:
-            pass
+        # except WebDriverException:
+        #     pass
         except Exception as ex:
             if str(ex) != 'Retry of page load timed out after 120.0 seconds!':
                 custom_logger.error(f'{type(ex)}: {ex}')
                 custom_logger.error('url: ' + url)
 
-    async def _resolve_stories_link(self, url: str) -> str:
-        def sync_resolve_stories_link(url: str) -> str:
-            # init client
-            with SB(uc=True, headless2=True, browser=settings.WEBDRIVER) as sb:
-                try:
-                    sb.open(url)
-                    # case: instagram redirect page
-                    if sb.is_text_visible('Вы покидаете Instagram'):
-                        redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=5)
-                        if redirect_button.text == 'Перейти по ссылке':
-                            redirect_button.click()
-                    # define url
-                    while True:
-                        if 'ozon.ru' in sb.get_current_url():
-                            sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
-                            break
-                        elif 'wildberries.ru' in sb.get_current_url():
-                            sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
-                            break
-                        else:
-                            # case: redirect landing page
-
-                            # check all redirect links/buttons
-                            for _ in ['Перейти', 'перейти', 'Открыть', 'открыть']:
-                                if redirect_button := sb.driver.find_elements(by=By.PARTIAL_LINK_TEXT, value=_):
-                                    redirect_button[0].click()
-                                    continue
-
-                            # wait for 5 secs
-                            sleep(5)
-                            if 'ozon.ru' in sb.get_current_url() or 'wildberries.ru' in sb.get_current_url():
-                                continue
-                            break
-
-                    return sb.get_current_url()
-                except NoSuchElementException as ex:
-                    # case: when timout occured after redirect
-                    if any(
-                        [
-                            self.wildberries.extract_sku_from_url(sb.get_current_url()),
-                            self.ozon.extract_sku_from_url(sb.get_current_url()),
-                        ]
-                    ):
-                        return sb.get_current_url()
-                    ex.url = sb.get_current_url()
-                    raise ex
-
-        return await asyncio.get_running_loop().run_in_executor(None, sync_resolve_stories_link, url)
+    # async def _resolve_stories_link(self, url: str) -> str:
+    #     def sync_resolve_stories_link(url: str) -> str:
+    #         # init client
+    #         with SB(uc=True, headless2=True, browser=settings.WEBDRIVER) as sb:
+    #             try:
+    #                 sb.open(url)
+    #                 # case: instagram redirect page
+    #                 if sb.is_text_visible('Вы покидаете Instagram'):
+    #                     redirect_button = sb.wait_for_element_present('button', by=By.TAG_NAME, timeout=5)
+    #                     if redirect_button.text == 'Перейти по ссылке':
+    #                         redirect_button.click()
+    #                 # define url
+    #                 while True:
+    #                     if 'ozon.ru' in sb.get_current_url():
+    #                         sb.wait_for_element_present('__ozon', by=By.ID, timeout=5)
+    #                         break
+    #                     elif 'wildberries.ru' in sb.get_current_url():
+    #                         sb.wait_for_element_present('wrapper', by=By.CLASS_NAME, timeout=5)
+    #                         break
+    #                     else:
+    #                         # case: redirect landing page
+    #
+    #                         # check all redirect links/buttons
+    #                         for _ in ['Перейти', 'перейти', 'Открыть', 'открыть']:
+    #                             if redirect_button := sb.driver.find_elements(by=By.PARTIAL_LINK_TEXT, value=_):
+    #                                 redirect_button[0].click()
+    #                                 continue
+    #
+    #                         # wait for 5 secs
+    #                         sleep(5)
+    #                         if 'ozon.ru' in sb.get_current_url() or 'wildberries.ru' in sb.get_current_url():
+    #                             continue
+    #                         break
+    #
+    #                 return sb.get_current_url()
+    #             except NoSuchElementException as ex:
+    #                 # case: when timout occured after redirect
+    #                 if any(
+    #                     [
+    #                         self.wildberries.extract_sku_from_url(sb.get_current_url()),
+    #                         self.ozon.extract_sku_from_url(sb.get_current_url()),
+    #                     ]
+    #                 ):
+    #                     return sb.get_current_url()
+    #                 ex.url = sb.get_current_url()
+    #                 raise ex
+    #
+    #     return await asyncio.get_running_loop().run_in_executor(None, sync_resolve_stories_link, url)
 
     async def _handle_exceptions(self, ex, **kwargs):
 

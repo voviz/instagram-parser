@@ -3,12 +3,12 @@ import concurrent.futures
 from src.core.config import settings
 from src.core.logs import custom_logger
 from src.parser.parser import Parser
-from src.parser.utils import check_driver_installation
+# from src.parser.utils import check_driver_installation
 
 
 def main():
     custom_logger.info('Start parser ...')
-    check_driver_installation()
+    # check_driver_installation()
     parser = Parser()
 
     with concurrent.futures.ProcessPoolExecutor(max_workers=settings.PROCESS_COUNT) as executor:
