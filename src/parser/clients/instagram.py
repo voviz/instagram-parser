@@ -244,6 +244,8 @@ class InstagramClient(BaseThirdPartyAPIClient):
             decoded_url = urllib.parse.unquote(url)
             if 'https://l.instagram.com/?u=' in decoded_url:
                 decoded_url = decoded_url.split('https://l.instagram.com/?u=')[1]
+            if '&e=' in decoded_url:
+                decoded_url = decoded_url.split("&e=")[0]
             story.url = decoded_url
             if 'ozon.ru' in story.url:
                 story.marketplace = Marketplaces.ozon
@@ -252,7 +254,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
                 story.marketplace = Marketplaces.wildberries
                 story.sku = self.wildberries.extract_sku_from_url(story.url)
             else:
-                story.sku = resolve_redirection_link(url)  # TODO make it async
+                story.sku = resolve_redirection_link(decoded_url)  # TODO make it async
                 story.marketplace = Marketplaces.wildberries
 
                 # story.url = await self._resolve_stories_link(url)
@@ -402,7 +404,7 @@ def resolve_redirection_link(link):
                       'Chrome/39.0.2171.95 Safari/537.36'
     }
     if not link.startswith('http'):
-        link = f'http://{link}'
+        link = f'https://{link}'
     try:
         response = requests.get(link, timeout=15, headers=headers)
     except Exception as e:  # (TimeOut, InvalidURL, ConnectionError, MissingSchema, InvalidSchema):
