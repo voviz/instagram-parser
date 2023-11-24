@@ -10,7 +10,7 @@ async def update_login(session, new_login_data: InstagramLogins) -> None:
     old = await session.execute(stmt)
     old = old.first()
     if old:
-        session.execute(delete(InstagramLogins).where(InstagramLogins.id == new_login_data.id))
+        await session.execute(delete(InstagramLogins).where(InstagramLogins.id == new_login_data.id))
         await session.commit()
         return
     await session.execute(

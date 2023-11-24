@@ -61,7 +61,7 @@ class ParserResultPost(Base, IdMixin):
 
     user_id = Column(BigInteger, ForeignKey('instagram_logins.user_id'))
     post_id = Column(BigInteger, unique=True)
-    link = Column(String(255), nullable=True)
+    link = Column(String, nullable=True)
     comments_count = Column(Integer, nullable=True)
     likes_count = Column(Integer, nullable=True)
     publication_date = Column(type_=TIMESTAMP(timezone=True))
