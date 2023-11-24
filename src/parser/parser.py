@@ -10,7 +10,7 @@ from src.parser.proxy.exceptions import ProxyTooManyRequests
 from src.core.logs import custom_logger
 from src.db.connector import get_async_sessionmaker, get_db_pool
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
-from src.db.crud.instagram_logins import get_logins_for_update, update_login_list
+from src.db.crud.instagram_logins import get_logins_for_update, update_login_list, update_new_login_ids
 from src.db.crud.parser_result import add_result_list
 from src.db.crud.parser_result_posts import add_posts_result_list
 from src.db.crud.inst_sku_per_post import add_inst_sku_per_post_list
@@ -88,7 +88,7 @@ class Parser:
                     tasks = [process_login(async_session, login) for login in chunk]
                     await asyncio.gather(*tasks)
                     async with async_session() as s:
-                        await update_login_list(s, updated_logins)
+                        await update_new_login_ids(s, updated_logins)
                     custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
             else:
                 custom_logger.warning('No ids for update found!')

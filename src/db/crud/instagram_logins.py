@@ -1,11 +1,17 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 
 from src.db.models import InstagramLogins
 
 
 async def update_login(session, new_login_data: InstagramLogins) -> None:
+    stmt = select(InstagramLogins).where(InstagramLogins.user_id == new_login_data.user_id)
+    old = await session.execute(stmt).first()
+    if old:
+        session.execute(delete(InstagramLogins).where(InstagramLogins.id == new_login_data.id))
+        await session.commit()
+        return
     await session.execute(
         update(InstagramLogins)
         .where(InstagramLogins.username == new_login_data.username)
@@ -19,6 +25,11 @@ async def update_login(session, new_login_data: InstagramLogins) -> None:
     )
     await session.commit()
 
+
+async def update_new_login_ids(session, login_list: list[InstagramLogins]) -> None:
+    for login in login_list:
+        login.updated_at = datetime.now()
+        await update_login(session, login)
 
 async def update_login_list(session, login_list: list[InstagramLogins]) -> None:
     raw_mappings = []
