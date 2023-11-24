@@ -48,5 +48,6 @@ class OzonClient(BaseThirdPartyAPIClient):
             if 'product_id' in parsed_url.query:
                 return int(parse_qs(parsed_url.query)['product_id'][0])
             elif '/product/' in parsed_url.path:
-                return int(parsed_url.path.split('/')[-2].split('-')[-1])
+                url_split = parsed_url.path.split('/')
+                return int(url_split[url_split.index('product') + 1].split('-')[-1])
         return None
