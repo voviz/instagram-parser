@@ -7,7 +7,8 @@ from src.db.models import InstagramLogins
 
 async def update_login(session, new_login_data: InstagramLogins) -> None:
     stmt = select(InstagramLogins).where(InstagramLogins.user_id == new_login_data.user_id)
-    old = await session.execute(stmt).first()
+    old = await session.execute(stmt)
+    old = old.first()
     if old:
         session.execute(delete(InstagramLogins).where(InstagramLogins.id == new_login_data.id))
         await session.commit()
