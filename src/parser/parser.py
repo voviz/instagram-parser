@@ -53,11 +53,10 @@ class Parser:
         return await self._retry_on_failure(self._internal_on_start, async_session)
 
     async def _internal_on_start(self, async_session: AsyncSession):
-        async with async_session() as s:
-            await add_new_accounts(s)
-            await update_accounts_daily_usage_rate(s)
-            logins_for_update = await get_logins_for_update(s)
-            return logins_for_update
+        await add_new_accounts(async_session)
+        await update_accounts_daily_usage_rate(async_session)
+        logins_for_update = await get_logins_for_update(async_session)
+        return logins_for_update
 
     async def _internal_get_login_id(
         self, async_session: AsyncSession, login: InstagramLogins
@@ -87,8 +86,8 @@ class Parser:
 
                     tasks = [process_login(async_session, login) for login in chunk]
                     await asyncio.gather(*tasks)
-                    async with async_session() as s:
-                        await update_new_login_ids(s, updated_logins)
+
+                    await update_new_login_ids(async_session, updated_logins)
                     custom_logger.info(f'ids for {len(updated_logins)} accounts updated!')
             else:
                 custom_logger.warning('No ids for update found!')
@@ -97,14 +96,13 @@ class Parser:
     @errors_handler
     async def _get_stories_in_chunk(self, semaphore: Semaphore, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
         async with semaphore:
-            async with async_session() as s:
-                if not logins_list:
-                    return
-                data = await self._retry_on_failure(self.client.get_stories_by_id, async_session,
-                                                    [_.user_id for _ in logins_list])
-                await add_result_list(s, data)
-                await update_login_list(s, logins_list)
-                custom_logger.info(f'{len(data)} stories with sku found!')
+            if not logins_list:
+                return
+            data = await self._retry_on_failure(self.client.get_stories_by_id, async_session,
+                                                [_.user_id for _ in logins_list])
+            await add_result_list(async_session, data)
+            await update_login_list(async_session, logins_list)
+            custom_logger.info(f'{len(data)} stories with sku found!')
         await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
     async def _internal_get_stories_data(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
@@ -133,24 +131,24 @@ class Parser:
         while True:
             if logins_with_id := [login for login in await self.on_start(async_session) if login.user_id]:
                 semaphore = Semaphore(self.MAX_COROUTINE_NUM)
-                async with async_session() as s:
-                    for chunk in chunks(logins_with_id, 10):
-                        async def process_login(login):
-                            async with semaphore:
-                                if data := await self._get_posts_by_id(async_session, login):
-                                    # update parser_results_posts
-                                    result = await add_posts_result_list(s, data)
-                                    # update inst_sku_per_post
-                                    await add_inst_sku_per_post_list(s, data, result)
-                                    # update instagram_login
-                                    await update_login_list(s, [login])
-                                    # count posts
-                                    posts_count = len(set(p.post_id for p in data.posts_list))
-                                    custom_logger.info(f'{posts_count} posts with sku found!')
-                                await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
-                        tasks = [process_login(login) for login in chunk]
-                        await asyncio.gather(*tasks)
+                for chunk in chunks(logins_with_id, 10):
+                    async def process_login(login):
+                        async with semaphore:
+                            if data := await self._get_posts_by_id(async_session, login):
+                                # update parser_results_posts
+                                result = await add_posts_result_list(async_session, data)
+                                # update inst_sku_per_post
+                                await add_inst_sku_per_post_list(async_session, data, result)
+                                # update instagram_login
+                                await update_login_list(async_session, [login])
+                                # count posts
+                                posts_count = len(set(p.post_id for p in data.posts_list))
+                                custom_logger.info(f'{posts_count} posts with sku found!')
+                            await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
+
+                    tasks = [process_login(login) for login in chunk]
+                    await asyncio.gather(*tasks)
             else:
                 custom_logger.warning('No posts for update found!')
                 await self.handle_no_logins()

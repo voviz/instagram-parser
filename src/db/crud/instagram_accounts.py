@@ -57,21 +57,22 @@ async def get_account(session: AsyncSession) -> InstagramAccounts:
 
 
 async def update_accounts_daily_usage_rate(session: AsyncSession) -> None:
-    accounts = await get_accounts_all(session)
-    for acc in accounts:
-        if acc.last_used_at and (datetime.now(pytz.utc) - acc.last_used_at).days >= 1:
-            await session.execute(
-                update(InstagramAccounts)
-                .where(InstagramAccounts.credentials == acc.credentials)
-                .values(daily_usage_rate=0)
-            )
-        elif acc.daily_usage_rate > 0:
-            await session.execute(
-                update(InstagramAccounts)
-                .where(InstagramAccounts.credentials == acc.credentials)
-                .values(daily_usage_rate=0)
-            )
-    await session.commit()
+    async with session() as s:
+        accounts = await get_accounts_all(s)
+        for acc in accounts:
+            if acc.last_used_at and (datetime.now(pytz.utc) - acc.last_used_at).days >= 1:
+                await s.execute(
+                    update(InstagramAccounts)
+                    .where(InstagramAccounts.credentials == acc.credentials)
+                    .values(daily_usage_rate=0)
+                )
+            elif acc.daily_usage_rate > 0:
+                await s.execute(
+                    update(InstagramAccounts)
+                    .where(InstagramAccounts.credentials == acc.credentials)
+                    .values(daily_usage_rate=0)
+                )
+        await s.commit()
 
 
 async def set_proxy_for_accounts(session: AsyncSession, accounts: list[InstagramAccounts]) -> None:
@@ -91,13 +92,14 @@ async def delete_account(session: AsyncSession, account: InstagramAccounts) -> N
 
 async def add_new_accounts(session: AsyncSession) -> bool:
     # get new accs and union with proxies
-    if new_accounts := await get_accounts_without_proxy(session):
-        proxies = await get_proxy_all(session, ProxyTypes.parser)
-        if not proxies:
-            raise NoProxyDBError(ProxyTypes.parser)
-        for i, acc in enumerate(new_accounts):
-            acc.proxy = proxies[i % len(proxies)].proxy
-        await set_proxy_for_accounts(session, new_accounts)
-        custom_logger.info(f'{len(new_accounts)} new accounts added!')
-        return True
-    return False
+    async with session() as s:
+        if new_accounts := await get_accounts_without_proxy(s):
+            proxies = await get_proxy_all(s, ProxyTypes.parser)
+            if not proxies:
+                raise NoProxyDBError(ProxyTypes.parser)
+            for i, acc in enumerate(new_accounts):
+                acc.proxy = proxies[i % len(proxies)].proxy
+            await set_proxy_for_accounts(s, new_accounts)
+            custom_logger.info(f'{len(new_accounts)} new accounts added!')
+            return True
+        return False
