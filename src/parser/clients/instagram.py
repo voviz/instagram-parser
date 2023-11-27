@@ -173,6 +173,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                         # text in story
                         if item.get('accessibility_caption'):
+                            logger.info("Extracting from caption")
                             story_list = await self._extract_sku_from_caption(
                                 async_session=async_session, item=story, caption=item['accessibility_caption'].lower()
                             )
@@ -180,6 +181,7 @@ class InstagramClient(BaseThirdPartyAPIClient):
 
                         # link sticker in story
                         elif item.get('story_link_stickers'):
+                            logger.info("Extracting from link")
                             await self._extract_sku_from_link(
                                 story, item['story_link_stickers'][0]['story_link']['url']
                             )

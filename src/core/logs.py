@@ -21,6 +21,6 @@ def get_file_handler(file_name, logging_level, log_format):
 logger = logging.getLogger("logs")
 logger.setLevel(logging.INFO)
 
-formatter = logging.Formatter('%(message)s')
-file_handler = get_file_handler("logs_links.log", logging.INFO, formatter)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S')
+file_handler = get_file_handler("stories.log", logging.INFO, formatter)
 logger.addHandler(file_handler)

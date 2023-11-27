@@ -8,7 +8,7 @@ import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.parser.proxy.exceptions import ProxyTooManyRequests
-from src.core.logs import custom_logger
+from src.core.logs import custom_logger, logger
 from src.db.connector import get_async_sessionmaker, get_db_pool
 from src.db.crud.instagram_accounts import add_new_accounts, update_accounts_daily_usage_rate
 from src.db.crud.instagram_logins import get_logins_for_update, update_login_list, update_new_login_ids
@@ -99,22 +99,28 @@ class Parser:
     @errors_handler
     async def _get_stories_in_chunk(self, semaphore: Semaphore, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
         async with semaphore:
+            logger.info("Async with semaphore")
             if not logins_list:
                 return
+            logger.info("Get stories by id")
             data = await self._retry_on_failure(self.client.get_stories_by_id, async_session,
                                                 [_.user_id for _ in logins_list])
+            logger.info("adding result")
             await add_result_list(async_session, data)
+            logger.info("updating login list")
             await update_login_list(async_session, logins_list)
             custom_logger.info(f'{len(data)} stories with sku found!')
         await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
     async def _internal_get_stories_data(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
+        logger.info("Create semaphoe and gather")
         semaphore = Semaphore(self.MAX_COROUTINE_NUM)
         await asyncio.gather(*(self._get_stories_in_chunk(semaphore, async_session, chunk)
                                for chunk in chunks(logins_list, self.LOGINS_CHUNK_SIZE)))
 
     async def get_stories_data(self, async_session: AsyncSession) -> None:
         while True:
+            logger.info("Getting logins to check")
             if logins_with_id := [login for login in await self.on_start(async_session) if login.user_id]:
                 return await self._internal_get_stories_data(async_session, logins_with_id)
             else:
