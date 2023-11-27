@@ -57,22 +57,21 @@ async def get_account(session: AsyncSession) -> InstagramAccounts:
 
 
 async def update_accounts_daily_usage_rate(session: AsyncSession) -> None:
-    async with session() as s:
-        accounts = await get_accounts_all(s)
+        accounts = await get_accounts_all(session)
         for acc in accounts:
             if acc.last_used_at and (datetime.now(pytz.utc) - acc.last_used_at).days >= 1:
-                await s.execute(
+                await session.execute(
                     update(InstagramAccounts)
                     .where(InstagramAccounts.credentials == acc.credentials)
                     .values(daily_usage_rate=0)
                 )
             elif acc.daily_usage_rate > 0:
-                await s.execute(
+                await session.execute(
                     update(InstagramAccounts)
                     .where(InstagramAccounts.credentials == acc.credentials)
                     .values(daily_usage_rate=0)
                 )
-        await s.commit()
+        await session.commit()
 
 
 async def set_proxy_for_accounts(session: AsyncSession, accounts: list[InstagramAccounts]) -> None:

@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from asyncio import Semaphore
 from datetime import datetime
 import random
@@ -36,25 +37,27 @@ class Parser:
                 return await func(async_session, *args, **kwargs)
             except (NoAccountsDBError, NoProxyDBError) as ex:
                 custom_logger.warning(ex)
-                async with async_session() as s:
-                    if not await add_new_accounts(s):
-                        custom_logger.warning('Restart after 15 min ...')
-                        await asyncio.sleep(900)
+                if not await add_new_accounts(async_session):
+                    custom_logger.warning('Restart after 15 min ...')
+                    await asyncio.sleep(900)
             except (
                     asyncio.TimeoutError,
                     aiohttp.client_exceptions.ClientProxyConnectionError,
                     aiohttp.ClientProxyConnectionError,
                     ProxyTooManyRequests,
             ) as ex:
+                traceback.print_exc()
                 custom_logger.error(f'Connection error ({type(ex)}): {ex}')
                 InstagramClient.ban_account(ex.proxy)
+                await asyncio.sleep(2)
 
     async def on_start(self, async_session: AsyncSession) -> list[InstagramLogins]:
         return await self._retry_on_failure(self._internal_on_start, async_session)
 
     async def _internal_on_start(self, async_session: AsyncSession):
         await add_new_accounts(async_session)
-        await update_accounts_daily_usage_rate(async_session)
+        async with async_session() as s:
+            await update_accounts_daily_usage_rate(s)
         logins_for_update = await get_logins_for_update(async_session)
         return logins_for_update
 
