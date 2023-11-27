@@ -110,6 +110,7 @@ class Parser:
             logger.info("updating login list")
             await update_login_list(async_session, logins_list)
             custom_logger.info(f'{len(data)} stories with sku found!')
+            logger.info("Login list updated. Sleeping.")
         await asyncio.sleep(random.randint(0, self.MAX_SLEEP_FOR_COROUTINE))
 
     async def _internal_get_stories_data(self, async_session: AsyncSession, logins_list: list[InstagramLogins]) -> None:
@@ -122,8 +123,9 @@ class Parser:
         while True:
             logger.info("Getting logins to check")
             if logins_with_id := [login for login in await self.on_start(async_session) if login.user_id]:
-                return await self._internal_get_stories_data(async_session, logins_with_id)
+                await self._internal_get_stories_data(async_session, logins_with_id)
             else:
+                logger.info("No logins to check")
                 custom_logger.warning('No stories for update found!')
                 await self.handle_no_logins()
 
