@@ -46,7 +46,7 @@ class Parser:
                     aiohttp.ClientProxyConnectionError,
                     ProxyTooManyRequests,
             ) as ex:
-                traceback.print_exc()
+                custom_logger.exception("Connection error")
                 custom_logger.error(f'Connection error ({type(ex)}): {ex}')
                 InstagramClient.ban_account(ex.proxy)
                 await asyncio.sleep(2)
